@@ -45,7 +45,11 @@ class _AskPageState extends State<AskPage> {
               IconButton(
                 tooltip: 'New conversation',
                 icon: const Icon(Icons.add_comment_outlined),
-                onPressed: () => bloc.add(const AskNewConversationRequested()),
+                onPressed: () {
+                  // Events run in order, so stop a running answer first.
+                  if (state.isAnswering) bloc.add(const AskStopRequested());
+                  bloc.add(const AskNewConversationRequested());
+                },
               ),
               if (!showHistoryPane)
                 Builder(

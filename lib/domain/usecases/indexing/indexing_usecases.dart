@@ -8,19 +8,26 @@ import '../../services/ai_services.dart';
 
 /// Computes and stores the semantic vector of one memory.
 ///
-/// Returns null when the embedder is unavailable; search still works by
+/// Never throws, so callers may run it in the background. Returns null when
+/// the embedder is unavailable or indexing failed; search still works by
 /// keywords in that case.
 final class IndexMemory implements UseCase<Float32List?, Memory> {
-  const IndexMemory(this._embedder, this._metadata);
+  const IndexMemory(this._embedder, this._metadata, this._logger);
 
   final TextEmbedder _embedder;
   final MemoryMetadataStore _metadata;
+  final AppLogger _logger;
 
   @override
   Future<Float32List?> call(Memory memory) async {
-    final vector = await _embedder.embed(memory.searchableText, EmbeddingPurpose.document);
-    if (vector != null) await _metadata.setEmbedding(memory.id, vector);
-    return vector;
+    try {
+      final vector = await _embedder.embed(memory.searchableText, EmbeddingPurpose.document);
+      if (vector != null) await _metadata.setEmbedding(memory.id, vector);
+      return vector;
+    } on Object catch (e, s) {
+      _logger.error('Indexing ${memory.id} failed', e, s);
+      return null;
+    }
   }
 }
 

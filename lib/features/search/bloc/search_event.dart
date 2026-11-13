@@ -40,3 +40,8 @@ final class SearchOptionsChanged extends SearchEvent {
 final class SearchHistoryCleared extends SearchEvent {
   const SearchHistoryCleared();
 }
+
+/// Stored memories changed; re-run the current search.
+final class _SearchDataChanged extends SearchEvent {
+  const _SearchDataChanged();
+}

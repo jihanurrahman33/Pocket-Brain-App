@@ -56,9 +56,13 @@ abstract class AutoRefreshCubit<T> extends Cubit<LoadState<T>> {
     _ => null,
   };
 
+  /// Incremented per load so a slow, older load cannot overwrite a newer one.
+  int _latestLoad = 0;
+
   Future<void> load() async {
+    final ticket = ++_latestLoad;
     final result = await fetch();
-    if (isClosed) return;
+    if (isClosed || ticket != _latestLoad) return;
     emit(result.fold(onSuccess: Loaded.new, onFailure: LoadFailed.new));
   }
 

@@ -43,13 +43,15 @@ void main() {
       expect(hits.first.memory.id, 'm1');
 
       final filtered = await search(
-        const SearchQuery(text: 'react', filters: SearchFilters(category: 'Work')),
+        const SearchQuery(
+          text: 'react',
+          filters: SearchFilters(category: 'Work'),
+        ),
       );
       expect(filtered.valueOrNull, isEmpty);
     });
 
-    Future<List<AskProgress>> ask(String q) =>
-        sl<AskBrain>()(AskRequest(question: q)).toList();
+    Future<List<AskProgress>> ask(String q) => sl<AskBrain>()(AskRequest(question: q)).toList();
 
     test('AskBrain refuses to invent when nothing matches', () async {
       final events = await ask('What is my passport number?');

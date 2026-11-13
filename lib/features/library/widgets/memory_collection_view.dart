@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/library_cubit.dart';
 
 /// The library's memories as a list or a responsive grid.

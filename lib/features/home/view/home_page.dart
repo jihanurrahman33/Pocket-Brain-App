@@ -7,10 +7,10 @@ import '../../../core/navigation/app_routes.dart';
 import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/recall.dart';
 import '../../model_manager/widgets/model_setup_banner.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/home_cubit.dart';
 import '../widgets/home_sections.dart';
 

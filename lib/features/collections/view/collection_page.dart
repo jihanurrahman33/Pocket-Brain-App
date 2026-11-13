@@ -8,11 +8,8 @@ import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/adaptive_dialogs.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
-import '../../../domain/entities/memory.dart';
-import '../../../domain/services/relevance_scorer.dart';
-import '../../../domain/usecases/collections/collection_usecases.dart';
 import '../../ask/bloc/ask_bloc.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/collection_cubit.dart';
 
 class CollectionPage extends StatelessWidget {
@@ -20,70 +17,50 @@ class CollectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CollectionCubit, LoadState<CollectionContents>>(
+    return BlocBuilder<CollectionCubit, LoadState<CollectionView>>(
       builder: (context, state) => switch (state) {
         Loading() => const Scaffold(body: LoadingView()),
         LoadFailed(:final failure) => Scaffold(
           appBar: AppBar(),
           body: FailureView(failure: failure),
         ),
-        Loaded(:final data) => _CollectionScaffold(contents: data),
+        Loaded(:final data) => _CollectionScaffold(view: data),
       },
     );
   }
 }
 
-class _CollectionScaffold extends StatefulWidget {
-  const _CollectionScaffold({required this.contents});
+class _CollectionScaffold extends StatelessWidget {
+  const _CollectionScaffold({required this.view});
 
-  final CollectionContents contents;
+  final CollectionView view;
 
-  @override
-  State<_CollectionScaffold> createState() => _CollectionScaffoldState();
-}
-
-class _CollectionScaffoldState extends State<_CollectionScaffold> {
-  static const _scorer = KeywordRelevanceScorer();
-  static const _minScore = 0.2;
   static const _gridTileMaxWidth = 280.0;
   static const _gridAspectRatio = 0.95;
 
-  String _query = '';
-
-  List<Memory> get _visible => _query.trim().isEmpty
-      ? widget.contents.memories
-      : [
-          for (final m in widget.contents.memories)
-            if (_scorer.score(_query, m) > _minScore) m,
-        ];
-
-  void _ask() {
-    context.read<AskBloc>().add(
-      AskNewConversationRequested(collectionId: widget.contents.collection.id),
-    );
+  void _ask(BuildContext context) {
+    context.read<AskBloc>().add(AskNewConversationRequested(collectionId: view.collection.id));
     context.go(AppRoutes.ask);
   }
 
-  Future<void> _delete() async {
+  Future<void> _delete(BuildContext context) async {
     final cubit = context.read<CollectionCubit>();
     final router = GoRouter.of(context);
-    final collection = widget.contents.collection;
     final confirmed = await confirmDestructive(
       context,
-      title: 'Delete "${collection.name}"?',
+      title: 'Delete "${view.collection.name}"?',
       message: 'The memories inside are kept; they just leave this collection.',
     );
     if (!confirmed) return;
     final failure = await cubit.delete();
-    if (!mounted) return;
+    if (!context.mounted) return;
     if (failure != null) return context.showFailure(failure);
     if (router.canPop()) router.pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final collection = widget.contents.collection;
-    final visible = _visible;
+    final collection = view.collection;
     final padding = AppSpacing.pagePadding(context);
     return Scaffold(
       appBar: AppBar(
@@ -92,12 +69,12 @@ class _CollectionScaffoldState extends State<_CollectionScaffold> {
           IconButton(
             tooltip: 'Ask this collection',
             icon: const Icon(Icons.psychology_alt_outlined),
-            onPressed: _ask,
+            onPressed: () => _ask(context),
           ),
           IconButton(
             tooltip: 'Delete collection',
             icon: const Icon(Icons.delete_outline_rounded),
-            onPressed: _delete,
+            onPressed: () => _delete(context),
           ),
         ],
       ),
@@ -114,15 +91,15 @@ class _CollectionScaffoldState extends State<_CollectionScaffold> {
                       hintText: 'Search in ${collection.name}',
                       prefixIcon: const Icon(Icons.search_rounded),
                     ),
-                    onChanged: (q) => setState(() => _query = q),
+                    onChanged: context.read<CollectionCubit>().search,
                   ),
                 ),
               ),
             ),
-            if (visible.isEmpty)
+            if (view.memories.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: widget.contents.memories.isEmpty
+                child: view.isEmpty
                     ? const EmptyState(
                         icon: Icons.folder_open_rounded,
                         title: 'Empty collection',
@@ -146,8 +123,8 @@ class _CollectionScaffoldState extends State<_CollectionScaffold> {
                     crossAxisSpacing: AppSpacing.sm,
                     childAspectRatio: _gridAspectRatio,
                   ),
-                  itemCount: visible.length,
-                  itemBuilder: (_, i) => MemoryCard(memory: visible[i]),
+                  itemCount: view.memories.length,
+                  itemBuilder: (_, i) => MemoryCard(memory: view.memories[i]),
                 ),
               ),
           ],

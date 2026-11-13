@@ -4,9 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/formatting/formatters.dart';
 import '../../../core/widgets/adaptive_dialogs.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/task_item.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/tasks_cubit.dart';
 
 enum _TaskAction { remind, clearReminder, delete }

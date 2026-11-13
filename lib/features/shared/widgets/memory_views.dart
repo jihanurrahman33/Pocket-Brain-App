@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../domain/entities/memory.dart';
-import '../formatting/formatters.dart';
-import '../navigation/app_routes.dart';
-import '../theme/app_spacing.dart';
+import '../../../core/formatting/formatters.dart';
+import '../../../core/navigation/app_routes.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../domain/entities/memory.dart';
+import 'memory_source_icon.dart';
 
 /// Navigates to a memory's detail screen.
 void openMemory(BuildContext context, String id) => context.push(AppRoutes.memory(id));

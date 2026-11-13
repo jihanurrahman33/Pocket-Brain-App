@@ -141,15 +141,8 @@ final class SaveCapture implements UseCase<Result<Memory>, SaveCaptureRequest> {
             ),
           );
         }
-        unawaited(_indexInBackground(memory));
+        // Background: search works by keywords until the vector is ready.
+        unawaited(_indexMemory(memory));
         return memory;
       });
-
-  Future<void> _indexInBackground(Memory memory) async {
-    try {
-      await _indexMemory(memory);
-    } on Object catch (e, s) {
-      _logger.error('Indexing ${memory.id} failed', e, s);
-    }
-  }
 }

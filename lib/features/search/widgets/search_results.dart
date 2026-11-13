@@ -5,8 +5,8 @@ import '../../../core/formatting/formatters.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/text_utils.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/search_bloc.dart';
 
 /// Results, recent searches or suggestions depending on the search state.

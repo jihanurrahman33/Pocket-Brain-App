@@ -204,6 +204,7 @@ final class EditMemory extends _MemoryCommand<MemoryEdit> {
 
   @override
   Future<void> afterSave(Memory memory) async {
+    // IndexMemory never throws, so it is safe to leave running.
     unawaited(_indexMemory(memory));
   }
 }

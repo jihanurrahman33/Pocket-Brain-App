@@ -42,12 +42,14 @@ class CaptureBloc extends Bloc<CaptureEvent, CaptureState> {
   }
 
   Future<void> _onSubmitted(CaptureSubmitted event, Emitter<CaptureState> emit) async {
-    emit(const CaptureAnalyzing());
+    emit(CaptureAnalyzing(event.input));
     final draft = await _analyzeCapture(event.input);
     final collections = (await _getCollections.run()).valueOrNull ?? const [];
     draft.fold(
       onSuccess: (d) => emit(CaptureReviewing(CaptureReview.fromDraft(d, collections))),
-      onFailure: (f) => emit(CaptureEditing(failure: f)),
+      // Keep the user's text: losing a note because analysis failed is worse
+      // than the failure itself.
+      onFailure: (f) => emit(CaptureEditing(failure: f, input: event.input)),
     );
   }
 

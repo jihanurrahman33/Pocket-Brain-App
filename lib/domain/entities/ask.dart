@@ -21,7 +21,20 @@ class AskRequest extends Equatable {
     this.collectionId,
     this.history = const [],
     this.isStopRequested = _never,
-  });
+  }) : staleAnswerId = null,
+       isRegeneration = false;
+
+  /// Answers the latest question of [conversation] again. The question is
+  /// already stored, so it is not saved twice; [staleAnswerId], if any, is
+  /// deleted and replaced by the new answer.
+  const AskRequest.regenerate({
+    required this.question,
+    required Conversation this.conversation,
+    required this.staleAnswerId,
+    this.history = const [],
+    this.isStopRequested = _never,
+  }) : collectionId = null,
+       isRegeneration = true;
 
   static bool _never() => false;
 
@@ -39,8 +52,21 @@ class AskRequest extends Equatable {
   /// Polled while streaming; true stops generation early.
   final bool Function() isStopRequested;
 
+  /// True when re-answering a question that is already stored.
+  final bool isRegeneration;
+
+  /// The previous answer to replace when regenerating.
+  final String? staleAnswerId;
+
   @override
-  List<Object?> get props => [question, conversation, collectionId, history];
+  List<Object?> get props => [
+    question,
+    conversation,
+    collectionId,
+    history,
+    isRegeneration,
+    staleAnswerId,
+  ];
 }
 
 /// Progress events emitted while Ask Brain answers (Observer pattern).

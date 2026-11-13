@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/formatting/formatters.dart';
 import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/feedback_widgets.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/capture.dart';
 import '../../../domain/entities/memory.dart';
+import '../../shared/widgets/memory_source_icon.dart';
 import '../bloc/capture_bloc.dart';
 
 /// Source types the user can pick. Voice, image and PDF are planned.
@@ -16,16 +16,19 @@ const _availableSources = [MemorySource.note, MemorySource.link, MemorySource.cl
 const _plannedSources = [MemorySource.voice, MemorySource.image, MemorySource.pdf];
 
 class CaptureInputForm extends StatefulWidget {
-  const CaptureInputForm({super.key});
+  const CaptureInputForm({super.key, this.initialInput});
+
+  /// Restores text after a failed submit.
+  final CaptureInput? initialInput;
 
   @override
   State<CaptureInputForm> createState() => _CaptureInputFormState();
 }
 
 class _CaptureInputFormState extends State<CaptureInputForm> {
-  final _text = TextEditingController();
-  final _url = TextEditingController();
-  MemorySource _source = MemorySource.note;
+  late final _text = TextEditingController(text: widget.initialInput?.text);
+  late final _url = TextEditingController(text: widget.initialInput?.url);
+  late MemorySource _source = widget.initialInput?.source ?? MemorySource.note;
 
   static const _minLines = 8;
   static const _maxLines = 18;

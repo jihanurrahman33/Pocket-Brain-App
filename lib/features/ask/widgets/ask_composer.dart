@@ -7,6 +7,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/section_header.dart';
 import '../bloc/ask_bloc.dart';
 
+/// Which memories Ask Brain may use; a null id means all of them.
+typedef AskScope = ({String? collectionId});
+
 /// The question input with scope chips and send/stop control.
 class AskComposer extends StatefulWidget {
   const AskComposer({super.key, required this.state});
@@ -65,16 +68,20 @@ class _AskComposerState extends State<AskComposer> {
                     side: BorderSide.none,
                     visualDensity: VisualDensity.compact,
                   ),
-                  PopupMenuButton<String?>(
+                  // Values are wrapped in a record: PopupMenuButton treats a
+                  // null value as "cancelled", so "All memories" must not be null.
+                  PopupMenuButton<AskScope>(
+                    key: const Key('ask-scope-menu'),
                     tooltip: state.conversation == null
                         ? 'Limit answers to a collection'
                         : 'Start a new chat to change scope',
                     enabled: state.conversation == null,
-                    onSelected: (id) => bloc.add(AskNewConversationRequested(collectionId: id)),
+                    onSelected: (scope) =>
+                        bloc.add(AskNewConversationRequested(collectionId: scope.collectionId)),
                     itemBuilder: (_) => [
-                      const PopupMenuItem(child: Text('All memories')),
+                      const PopupMenuItem(value: (collectionId: null), child: Text('All memories')),
                       for (final c in state.collections)
-                        PopupMenuItem(value: c.id, child: Text(c.label)),
+                        PopupMenuItem(value: (collectionId: c.id), child: Text(c.label)),
                     ],
                     child: Chip(
                       avatar: const Icon(Icons.folder_outlined, size: _chipIconSize),

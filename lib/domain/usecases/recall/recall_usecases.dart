@@ -10,6 +10,7 @@ import '../../repositories/collection_repository.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
 import '../../services/ai_services.dart';
+import '../../services/topic_ranker.dart';
 
 /// Smart-recall rules shared by Home and the Digest.
 final class RecallPolicy {
@@ -38,18 +39,6 @@ final class RecallPolicy {
     now.startOfDay.subtract(week - const Duration(days: 1)),
     now.add(const Duration(minutes: 1)),
   );
-
-  /// Tags ranked by how often they appear.
-  static List<TopicCount> topTopics(List<Memory> memories, {required int limit}) {
-    final counts = <String, int>{};
-    for (final m in memories) {
-      for (final t in m.tags) {
-        counts[t] = (counts[t] ?? 0) + 1;
-      }
-    }
-    final sorted = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    return [for (final e in sorted.take(limit)) TopicCount(e.key, e.value)];
-  }
 }
 
 final class GetHomeOverview implements UseCase<Result<HomeOverview>, NoParams> {
@@ -95,7 +84,7 @@ final class GetHomeOverview implements UseCase<Result<HomeOverview>, NoParams> {
       ],
       collections: collections.take(collectionLimit).toList(),
       savedThisWeek: week.length,
-      weekTopics: RecallPolicy.topTopics(week, limit: topicLimit),
+      weekTopics: TopicRanker.rank(week, limit: topicLimit),
       openTasks: tasks.where((t) => !t.isDone).take(taskLimit).toList(),
     );
   });
@@ -128,7 +117,7 @@ final class GetDigest implements UseCase<Result<Digest>, NoParams> {
     return Digest(
       today: week.where((m) => m.createdAt.isSameDay(now)).toList(),
       week: week,
-      topics: RecallPolicy.topTopics(week, limit: topicLimit),
+      topics: TopicRanker.rank(week, limit: topicLimit),
       onThisDay: await _recall.onThisDay(now),
       revisit: await _recall.forgotten(now, limit: revisitLimit),
       openTasks: tasks.where((t) => !t.isDone).toList(),

@@ -8,18 +8,25 @@ sealed class CaptureState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Typing. [failure] explains why the last submit did not proceed.
+/// Typing. After a failed submit, [failure] says why and [input] holds
+/// what the user typed so it can be restored.
 final class CaptureEditing extends CaptureState {
-  const CaptureEditing({this.failure});
+  const CaptureEditing({this.failure, this.input});
 
   final Failure? failure;
+  final CaptureInput? input;
 
   @override
-  List<Object?> get props => [failure];
+  List<Object?> get props => [failure, input];
 }
 
 final class CaptureAnalyzing extends CaptureState {
-  const CaptureAnalyzing();
+  const CaptureAnalyzing(this.input);
+
+  final CaptureInput input;
+
+  @override
+  List<Object?> get props => [input];
 }
 
 final class CaptureReviewing extends CaptureState {

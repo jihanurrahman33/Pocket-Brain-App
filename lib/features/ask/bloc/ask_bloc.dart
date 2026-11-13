@@ -1,4 +1,4 @@
-import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart' show sequential;
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -31,13 +31,11 @@ class AskBloc extends Bloc<AskEvent, AskState> {
        _getSuggestions = getSuggestions,
        _getCollections = getCollections,
        super(const AskState()) {
-    on<AskStarted>(_onStarted);
-    on<AskConversationSelected>(_onConversationSelected, transformer: restartable());
-    on<AskNewConversationRequested>(_onNewConversation);
-    on<AskConversationDeleted>(_onConversationDeleted);
-    on<AskQuestionSubmitted>(_onQuestionSubmitted, transformer: droppable());
-    on<AskRegenerateRequested>(_onRegenerate, transformer: droppable());
-    on<AskStopRequested>(_onStop);
+    // Every event that reads or replaces the conversation runs strictly in
+    // order, so e.g. "new chat" then "ask" can never interleave. Stop has its
+    // own concurrent handler so it can interrupt a running answer.
+    on<AskEvent>(_dispatch, transformer: sequential());
+    on<AskStopRequested>((_, _) => _stopRequested = true);
   }
 
   final AskBrain _askBrain;
@@ -48,7 +46,18 @@ class AskBloc extends Bloc<AskEvent, AskState> {
   final GetCollections _getCollections;
   bool _stopRequested = false;
 
-  Future<void> _onStarted(AskStarted event, Emitter<AskState> emit) async {
+  Future<void> _dispatch(AskEvent event, Emitter<AskState> emit) => switch (event) {
+    AskStarted() => _onStarted(emit),
+    AskConversationSelected(:final conversation) => _onConversationSelected(conversation, emit),
+    AskNewConversationRequested(:final collectionId) => _onNewConversation(collectionId, emit),
+    AskConversationDeleted(:final conversationId) => _onConversationDeleted(conversationId, emit),
+    AskQuestionSubmitted(:final question) => _onQuestionSubmitted(question, emit),
+    AskRegenerateRequested() => _onRegenerate(emit),
+    // Handled immediately by its own concurrent handler.
+    AskStopRequested() => Future.value(),
+  };
+
+  Future<void> _onStarted(Emitter<AskState> emit) async {
     emit(
       state.copyWith(
         conversations: (await _getConversations.run()).valueOrNull,
@@ -58,16 +67,13 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     );
   }
 
-  Future<void> _onConversationSelected(
-    AskConversationSelected event,
-    Emitter<AskState> emit,
-  ) async {
-    final transcript = await _openConversation(event.conversation.id);
+  Future<void> _onConversationSelected(Conversation conversation, Emitter<AskState> emit) async {
+    final transcript = await _openConversation(conversation.id);
     transcript.fold(
       onSuccess: (t) => emit(
         state.copyWith(
-          conversation: () => event.conversation,
-          collectionId: () => event.conversation.collectionId,
+          conversation: () => conversation,
+          collectionId: () => conversation.collectionId,
           messages: t.messages,
           sources: t.sources,
           failure: () => null,
@@ -77,23 +83,29 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     );
   }
 
-  Future<void> _onNewConversation(AskNewConversationRequested event, Emitter<AskState> emit) async {
+  Future<void> _onNewConversation(String? collectionId, Emitter<AskState> emit) async {
+    // Reset first so nothing can observe a half-switched conversation.
     emit(
       state.copyWith(
         conversation: () => null,
-        collectionId: () => event.collectionId,
+        collectionId: () => collectionId,
         messages: const [],
+        sources: const {},
         streamingText: () => null,
         failure: () => null,
+      ),
+    );
+    emit(
+      state.copyWith(
         collections: (await _getCollections.run()).valueOrNull,
         suggestions: await _getSuggestions.run(),
       ),
     );
   }
 
-  Future<void> _onConversationDeleted(AskConversationDeleted event, Emitter<AskState> emit) async {
-    await _deleteConversation(event.conversationId);
-    final wasOpen = state.conversation?.id == event.conversationId;
+  Future<void> _onConversationDeleted(String conversationId, Emitter<AskState> emit) async {
+    await _deleteConversation(conversationId);
+    final wasOpen = state.conversation?.id == conversationId;
     emit(
       state.copyWith(
         conversations: (await _getConversations.run()).valueOrNull,
@@ -103,35 +115,44 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     );
   }
 
-  Future<void> _onQuestionSubmitted(AskQuestionSubmitted event, Emitter<AskState> emit) =>
-      _ask(event.question, history: state.messages, emit: emit);
-
-  Future<void> _onRegenerate(AskRegenerateRequested event, Emitter<AskState> emit) async {
-    final messages = state.messages;
-    final lastQuestion = messages.where((m) => m.isUser).lastOrNull;
-    if (lastQuestion == null || state.isAnswering) return;
-    final history = messages.sublist(0, messages.indexOf(lastQuestion));
-    emit(state.copyWith(messages: history));
-    await _ask(lastQuestion.text, history: history, emit: emit);
+  Future<void> _onQuestionSubmitted(String question, Emitter<AskState> emit) async {
+    if (question.trim().isEmpty) return;
+    await _ask(
+      AskRequest(
+        question: question,
+        conversation: state.conversation,
+        collectionId: state.collectionId,
+        history: state.messages,
+        isStopRequested: () => _stopRequested,
+      ),
+      emit,
+    );
   }
 
-  void _onStop(AskStopRequested event, Emitter<AskState> emit) => _stopRequested = true;
+  /// Answers the last question again, replacing (not duplicating) the
+  /// stored answer.
+  Future<void> _onRegenerate(Emitter<AskState> emit) async {
+    final conversation = state.conversation;
+    final messages = state.messages;
+    final questionIndex = messages.lastIndexWhere((m) => m.isUser);
+    if (conversation == null || questionIndex < 0) return;
+    final staleAnswer = messages.skip(questionIndex + 1).where((m) => !m.isUser).firstOrNull;
+    emit(state.copyWith(messages: messages.sublist(0, questionIndex + 1)));
+    await _ask(
+      AskRequest.regenerate(
+        question: messages[questionIndex].text,
+        conversation: conversation,
+        staleAnswerId: staleAnswer?.id,
+        history: messages.sublist(0, questionIndex),
+        isStopRequested: () => _stopRequested,
+      ),
+      emit,
+    );
+  }
 
-  Future<void> _ask(
-    String question, {
-    required List<ChatMessage> history,
-    required Emitter<AskState> emit,
-  }) async {
-    if (question.trim().isEmpty || state.isAnswering) return;
+  Future<void> _ask(AskRequest request, Emitter<AskState> emit) async {
     _stopRequested = false;
     emit(state.copyWith(phase: AskPhase.retrieving, streamingText: () => '', failure: () => null));
-    final request = AskRequest(
-      question: question,
-      conversation: state.conversation,
-      collectionId: state.collectionId,
-      history: history,
-      isStopRequested: () => _stopRequested,
-    );
     try {
       await emit.forEach<AskProgress>(_askBrain(request), onData: _reduce);
       emit(state.copyWith(conversations: (await _getConversations.run()).valueOrNull));

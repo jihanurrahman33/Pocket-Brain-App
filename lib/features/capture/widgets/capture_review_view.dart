@@ -6,9 +6,9 @@ import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/memory_analysis.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/capture_bloc.dart';
 
 /// "AI understood your memory": editable suggestions, confirmed tasks,

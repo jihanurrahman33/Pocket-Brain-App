@@ -6,7 +6,7 @@ import '../../../domain/entities/ai_model.dart';
 import '../../../domain/entities/ask.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/services/ai_services.dart';
-import '../../../domain/usecases/recall/recall_usecases.dart';
+import '../../../domain/services/topic_ranker.dart';
 import '../../datasources/ai/on_device_ai_runtime.dart';
 import 'prompts/prompts.dart';
 
@@ -33,7 +33,7 @@ final class RuleBasedRecapWriter implements RecapWriter {
   @override
   Future<String> write(List<Memory> memories) async {
     if (memories.isEmpty) return 'You have not saved anything this week yet.';
-    final topics = RecallPolicy.topTopics(memories, limit: _topicCount).map((t) => t.topic);
+    final topics = TopicRanker.rank(memories, limit: _topicCount).map((t) => t.topic);
     final n = memories.length;
     return 'You saved $n ${n == 1 ? 'memory' : 'memories'} this week'
         '${topics.isEmpty ? '.' : ', mostly about ${topics.join(', ')}.'}';

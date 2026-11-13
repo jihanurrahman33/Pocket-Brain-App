@@ -88,9 +88,14 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       yield AskConversationStarted(conversation);
     }
 
-    final asked = _message(conversation.id, ChatRole.user, question);
-    await _conversations.saveMessage(asked);
-    yield AskQuestionRecorded(asked);
+    if (request.isRegeneration) {
+      // The question is already stored; only the old answer goes.
+      if (request.staleAnswerId case final stale?) await _conversations.deleteMessage(stale);
+    } else {
+      final asked = _message(conversation.id, ChatRole.user, question);
+      await _conversations.saveMessage(asked);
+      yield AskQuestionRecorded(asked);
+    }
 
     final sources = await _retrieveSources((
       question: _retrievalText(question, request.history),

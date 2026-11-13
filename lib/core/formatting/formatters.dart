@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../domain/entities/memory.dart';
 import '../utils/clock.dart';
 
 /// Presentation formatting helpers.
@@ -33,15 +31,4 @@ abstract final class Formatters {
 
   static String plural(int count, String singular, [String? plural]) =>
       '$count ${count == 1 ? singular : plural ?? '${singular}s'}';
-}
-
-extension MemorySourceIcon on MemorySource {
-  IconData get icon => switch (this) {
-    MemorySource.note => Icons.notes_rounded,
-    MemorySource.link => Icons.link_rounded,
-    MemorySource.clipboard => Icons.content_paste_rounded,
-    MemorySource.voice => Icons.mic_rounded,
-    MemorySource.image => Icons.image_outlined,
-    MemorySource.pdf => Icons.picture_as_pdf_outlined,
-  };
 }

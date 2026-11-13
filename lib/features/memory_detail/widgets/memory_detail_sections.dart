@@ -5,11 +5,12 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/adaptive_dialogs.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/recall.dart';
 import '../../../domain/entities/task_item.dart';
+import '../../shared/widgets/memory_source_icon.dart';
+import '../../shared/widgets/memory_views.dart';
 
 class MemoryHeader extends StatelessWidget {
   const MemoryHeader({super.key, required this.memory});

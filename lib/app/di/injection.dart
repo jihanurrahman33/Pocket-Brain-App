@@ -154,7 +154,7 @@ void _registerUseCases() {
     ..registerLazySingleton(() => GetRecentSearches(sl(), sl()))
     ..registerLazySingleton(() => RecordSearch(sl(), sl(), sl()))
     ..registerLazySingleton(() => ClearSearchHistory(sl(), sl()))
-    ..registerLazySingleton(() => IndexMemory(sl(), sl()))
+    ..registerLazySingleton(() => IndexMemory(sl(), sl(), sl()))
     ..registerLazySingleton(
       () => IndexPendingMemories(embedder: sl(), metadata: sl(), indexMemory: sl(), logger: sl()),
     )
@@ -322,6 +322,7 @@ void _registerPresentation() {
         recordSearch: sl(),
         clearHistory: sl(),
         getCategories: sl(),
+        changes: changes(),
       ),
     )
     ..registerFactoryParam<MemoryDetailCubit, String, void>(
@@ -344,6 +345,7 @@ void _registerPresentation() {
       (collectionId, _) => CollectionCubit(
         collectionId: collectionId,
         getContents: sl(),
+        searchMemories: sl(),
         deleteCollection: sl(),
         changes: changes(),
       ),

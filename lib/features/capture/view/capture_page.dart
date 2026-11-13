@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/capture_bloc.dart';
 import '../widgets/capture_input_form.dart';
 import '../widgets/capture_review_view.dart';
@@ -44,7 +44,8 @@ class CapturePage extends StatelessWidget {
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: switch (state) {
-              CaptureEditing() || CaptureSaved() => const CaptureInputForm(),
+              CaptureEditing(:final input) => CaptureInputForm(initialInput: input),
+              CaptureSaved() => const CaptureInputForm(),
               CaptureAnalyzing() => const _AnalyzingView(),
               CaptureReviewing() => CaptureReviewView(
                 key: ValueKey(state.review.draft),

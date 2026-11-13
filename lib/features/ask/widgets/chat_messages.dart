@@ -6,11 +6,11 @@ import '../../../core/formatting/formatters.dart';
 import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/feedback_widgets.dart';
-import '../../../core/widgets/memory_views.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/conversation.dart';
 import '../../../domain/entities/memory.dart';
 import '../../model_manager/widgets/model_setup_banner.dart';
+import '../../shared/widgets/memory_views.dart';
 import '../bloc/ask_bloc.dart';
 
 class AskWelcome extends StatelessWidget {

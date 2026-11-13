@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +25,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     required RecordSearch recordSearch,
     required ClearSearchHistory clearHistory,
     required GetCategories getCategories,
+    required Stream<void> changes,
   }) : _searchMemories = searchMemories,
        _getRecentSearches = getRecentSearches,
        _recordSearch = recordSearch,
@@ -34,6 +37,17 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     on<SearchSubmitted>(_onSubmitted);
     on<SearchOptionsChanged>(_onOptionsChanged, transformer: restartable());
     on<SearchHistoryCleared>(_onHistoryCleared);
+    on<_SearchDataChanged>((_, emit) => _search(emit), transformer: restartable());
+    // Edits and deletions elsewhere must not leave stale results on screen.
+    _changes = changes.listen((_) => add(const _SearchDataChanged()));
+  }
+
+  late final StreamSubscription<void> _changes;
+
+  @override
+  Future<void> close() async {
+    await _changes.cancel();
+    return super.close();
   }
 
   static const debounce = Duration(milliseconds: 300);
