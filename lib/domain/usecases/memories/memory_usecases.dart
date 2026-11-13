@@ -11,6 +11,7 @@ import '../../../core/utils/clock.dart';
 import '../../entities/memory.dart';
 import '../../entities/recall.dart';
 import '../../entities/search.dart';
+import '../../repositories/attachment_store.dart';
 import '../../repositories/change_notifier.dart';
 import '../../repositories/collection_repository.dart';
 import '../../repositories/memory_repository.dart';
@@ -209,13 +210,20 @@ final class EditMemory extends _MemoryCommand<MemoryEdit> {
   }
 }
 
+/// Deletes a memory together with its images and recordings.
 final class DeleteMemory implements UseCase<Result<void>, String> {
-  const DeleteMemory(this._memories, this._logger);
+  const DeleteMemory(this._memories, this._attachments, this._logger);
 
   final MemoryRepository _memories;
+  final AttachmentStore _attachments;
   final AppLogger _logger;
 
   @override
-  Future<Result<void>> call(String id) =>
-      guard(_logger, 'Delete memory', () => _memories.delete(id));
+  Future<Result<void>> call(String id) => guard(_logger, 'Delete memory', () async {
+    final memory = await _memories.getById(id);
+    await _memories.delete(id);
+    for (final attachment in memory?.attachments ?? const <Attachment>[]) {
+      await _attachments.delete(attachment);
+    }
+  });
 }

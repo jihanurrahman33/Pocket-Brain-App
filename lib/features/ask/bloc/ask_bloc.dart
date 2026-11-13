@@ -24,7 +24,11 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     required DeleteConversation deleteConversation,
     required GetSuggestedQuestions getSuggestions,
     required GetCollections getCollections,
+    required ConfirmAssistantAction confirmAction,
+    required DismissAssistantAction dismissAction,
   }) : _askBrain = askBrain,
+       _confirmAction = confirmAction,
+       _dismissAction = dismissAction,
        _getConversations = getConversations,
        _openConversation = openConversation,
        _deleteConversation = deleteConversation,
@@ -44,6 +48,8 @@ class AskBloc extends Bloc<AskEvent, AskState> {
   final DeleteConversation _deleteConversation;
   final GetSuggestedQuestions _getSuggestions;
   final GetCollections _getCollections;
+  final ConfirmAssistantAction _confirmAction;
+  final DismissAssistantAction _dismissAction;
   bool _stopRequested = false;
 
   Future<void> _dispatch(AskEvent event, Emitter<AskState> emit) => switch (event) {
@@ -53,6 +59,12 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     AskConversationDeleted(:final conversationId) => _onConversationDeleted(conversationId, emit),
     AskQuestionSubmitted(:final question) => _onQuestionSubmitted(question, emit),
     AskRegenerateRequested() => _onRegenerate(emit),
+    AskActionDecided(:final messageId, :final actionId, :final confirmed) => _onActionDecided(
+      messageId,
+      actionId,
+      confirmed: confirmed,
+      emit: emit,
+    ),
     // Handled immediately by its own concurrent handler.
     AskStopRequested() => Future.value(),
   };
@@ -147,6 +159,28 @@ class AskBloc extends Bloc<AskEvent, AskState> {
         isStopRequested: () => _stopRequested,
       ),
       emit,
+    );
+  }
+
+  /// Carries out (or declines) a change the assistant proposed.
+  Future<void> _onActionDecided(
+    String messageId,
+    String actionId, {
+    required bool confirmed,
+    required Emitter<AskState> emit,
+  }) async {
+    final message = state.messages.where((m) => m.id == messageId).firstOrNull;
+    if (message == null) return;
+    final decision = (message: message, actionId: actionId);
+    final result = confirmed ? await _confirmAction(decision) : await _dismissAction(decision);
+    result.fold(
+      onSuccess: (updated) => emit(
+        state.copyWith(
+          messages: [for (final m in state.messages) m.id == updated.id ? updated : m],
+          failure: () => null,
+        ),
+      ),
+      onFailure: (f) => emit(state.copyWith(failure: () => f)),
     );
   }
 

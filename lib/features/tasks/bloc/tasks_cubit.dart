@@ -31,7 +31,7 @@ class TasksCubit extends AutoRefreshCubit<TaskBoard> {
   Future<Result<TaskBoard>> fetch() => _actions.getBoard.run();
 
   Future<Failure?> add(String title, DateTime? dueAt) async =>
-      (await _actions.addTask((title: title, dueAt: dueAt, memoryId: null))).failureOrNull;
+      (await _actions.addTask(NewTask(title: title, dueAt: dueAt))).failureOrNull;
 
   Future<Failure?> toggle(TaskItem task) async => (await _actions.toggleTask(task)).failureOrNull;
 

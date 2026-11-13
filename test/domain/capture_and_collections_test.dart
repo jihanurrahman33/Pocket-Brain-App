@@ -77,9 +77,9 @@ void main() {
 
   test('GetTaskBoard groups tasks by due date', () async {
     final add = sl<AddTask>();
-    await add((title: 'late', dueAt: DateTime(2026, 11, 1), memoryId: null));
-    await add((title: 'soon', dueAt: DateTime(2026, 11, 20), memoryId: null));
-    await add((title: 'whenever', dueAt: null, memoryId: null));
+    await add(NewTask(title: 'late', dueAt: DateTime(2026, 11, 1)));
+    await add(NewTask(title: 'soon', dueAt: DateTime(2026, 11, 20)));
+    await add(const NewTask(title: 'whenever'));
     final board = (await sl<GetTaskBoard>()(noParams)).valueOrNull!;
     expect(board.overdue.single.title, 'late');
     expect(board.upcoming.single.title, 'soon');
@@ -88,7 +88,7 @@ void main() {
 
   test('WipeAllData clears every store', () async {
     await sl<MemoryRepository>().save(memoryFixture());
-    await sl<AddTask>()((title: 't', dueAt: null, memoryId: 'm1'));
+    await sl<AddTask>()(const NewTask(title: 't', memoryId: 'm1'));
     expect((await sl<WipeAllData>()(noParams)).isSuccess, isTrue);
     expect(await sl<MemoryRepository>().count(), 0);
     expect(await sl<TaskRepository>().getAll(), isEmpty);

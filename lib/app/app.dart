@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/navigation/app_routes.dart';
 import '../core/theme/app_theme.dart';
+import '../core/usecase/usecase.dart';
+import '../domain/usecases/tasks/task_usecases.dart';
 import '../features/ask/bloc/ask_bloc.dart';
 import '../features/capture/bloc/capture_bloc.dart';
 import '../features/home/bloc/home_cubit.dart';
@@ -23,9 +28,19 @@ class PocketBrainApp extends StatefulWidget {
 
 class _PocketBrainAppState extends State<PocketBrainApp> {
   late final GoRouter _router = createRouter();
+  StreamSubscription<String>? _reminderTaps;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tapping a reminder notification opens the task list.
+    _reminderTaps = sl<ObserveOpenedReminders>()(noParams)
+        .listen((_) => _router.push(AppRoutes.tasks));
+  }
 
   @override
   void dispose() {
+    unawaited(_reminderTaps?.cancel());
     _router.dispose();
     super.dispose();
   }

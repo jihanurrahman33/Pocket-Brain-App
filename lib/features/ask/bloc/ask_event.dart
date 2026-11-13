@@ -55,3 +55,19 @@ final class AskRegenerateRequested extends AskEvent {
 final class AskStopRequested extends AskEvent {
   const AskStopRequested();
 }
+
+/// The user confirmed or dismissed a change the assistant proposed.
+final class AskActionDecided extends AskEvent {
+  const AskActionDecided({
+    required this.messageId,
+    required this.actionId,
+    required this.confirmed,
+  });
+
+  final String messageId;
+  final String actionId;
+  final bool confirmed;
+
+  @override
+  List<Object?> get props => [messageId, actionId, confirmed];
+}

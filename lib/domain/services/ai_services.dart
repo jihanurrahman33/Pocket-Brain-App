@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 
 import '../entities/ask.dart';
+import '../entities/capture.dart';
 import '../entities/memory.dart';
 import '../entities/memory_analysis.dart';
+import 'assistant_toolbox.dart';
 
 /// Ports for AI capabilities (Interface Segregation: each consumer depends
 /// only on the capability it uses). Implementations live in the data layer.
@@ -17,8 +19,10 @@ abstract interface class AnswerGenerator {
   /// Whether a language model is installed.
   bool get isAvailable;
 
-  /// Streams answer text in chunks.
-  Stream<String> generate(AnswerPrompt prompt);
+  /// Streams snapshots of the answer so far. When [toolbox] is given the
+  /// model may call its tools; a snapshot may then shrink (text written
+  /// before a tool call is not the answer).
+  Stream<String> generate(AnswerPrompt prompt, {AssistantToolbox? toolbox});
 }
 
 /// Writes a short recap connecting a set of memories.
@@ -47,4 +51,31 @@ class LinkContent {
 /// Fetches a saved link so it can be summarised.
 abstract interface class LinkReader {
   Future<LinkContent?> read(String url);
+}
+
+/// Understands images and recordings on the device.
+abstract interface class MediaReader {
+  /// Whether the AI needed to read media is set up.
+  bool get isAvailable;
+
+  /// Reads the text in an image and describes it.
+  Future<MediaReading> readImage(String path);
+
+  /// Transcribes speech in a recording.
+  Future<MediaReading> transcribe(String path);
+}
+
+/// Records voice notes from the microphone.
+abstract interface class VoiceRecorder {
+  /// Whether recording works on this device.
+  Future<bool> isSupported();
+
+  /// Starts recording; throws if the microphone is unavailable.
+  Future<void> start();
+
+  /// Stops and returns the path of the finished recording.
+  Future<String> stop();
+
+  /// Stops and discards the recording.
+  Future<void> cancel();
 }

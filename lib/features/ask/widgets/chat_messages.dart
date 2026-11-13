@@ -12,6 +12,7 @@ import '../../../domain/entities/memory.dart';
 import '../../model_manager/widgets/model_setup_banner.dart';
 import '../../shared/widgets/memory_views.dart';
 import '../bloc/ask_bloc.dart';
+import 'action_card.dart';
 
 class AskWelcome extends StatelessWidget {
   const AskWelcome({super.key, required this.state});
@@ -140,6 +141,11 @@ class _AnswerBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SelectableText(message.text, style: theme.textTheme.bodyLarge),
+          for (final action in message.actions)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: AssistantActionCard(messageId: message.id, action: action),
+            ),
           if (sources.isNotEmpty) ...[
             const Gap.md(),
             Text('Sources from your memories', style: theme.textTheme.labelMedium),

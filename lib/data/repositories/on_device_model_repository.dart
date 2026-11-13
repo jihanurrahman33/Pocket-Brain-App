@@ -36,11 +36,16 @@ final class OnDeviceModelRepository implements ModelRepository {
   );
 
   @override
-  AiPackStatus status() => AiPackStatus(
-    totalBytes: _totalBytes,
-    remainingBytes: _missing.isEmpty ? 0 : _totalBytes - _bytesOnDisk,
-    isLoaded: _runtime.components.any((c) => _runtime.isLoaded(c.kind)),
-  );
+  AiPackStatus status() {
+    final installed = _missing.isEmpty;
+    return AiPackStatus(
+      totalBytes: _totalBytes,
+      remainingBytes: installed ? 0 : (_totalBytes - _bytesOnDisk).clamp(0, _totalBytes),
+      // Registered with the engine — downloaded bytes alone are not enough.
+      isInstalled: installed,
+      isLoaded: _runtime.components.any((c) => _runtime.isLoaded(c.kind)),
+    );
+  }
 
   @override
   Future<Result<void>> install({required void Function(double progress) onProgress}) async {

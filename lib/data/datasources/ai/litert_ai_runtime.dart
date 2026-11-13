@@ -149,9 +149,26 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   }
 
   @override
-  Stream<String> generate(GenerationRequest request) {
+  Stream<String> generate(GenerationRequest request) =>
+      _serialized((out) => _runGeneration(request, out));
+
+  @override
+  Stream<String> chatWithTools(ToolChatRequest request) =>
+      _serialized((out) => _runToolChat(request, out));
+
+  /// Runs one generation at a time (LiteRT-LM serves one session at once)
+  /// and adapts it to a cancellable stream.
+  Stream<String> _serialized(Future<void> Function(StreamController<String> out) body) {
     final controller = StreamController<String>();
-    final run = _generationQueue.then((_) => _pump(request, controller));
+    final run = _generationQueue.then((_) async {
+      try {
+        await body(controller);
+      } on Object catch (e, s) {
+        if (!controller.isClosed) controller.addError(e, s);
+      } finally {
+        if (!controller.isClosed) await controller.close();
+      }
+    });
     _generationQueue = run.catchError((Object _) {});
     controller.onCancel = () async {
       if (!controller.isClosed) await controller.close();
@@ -159,37 +176,102 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
     return controller.stream;
   }
 
-  Future<void> _pump(GenerationRequest request, StreamController<String> out) async {
+  Future<void> _runGeneration(GenerationRequest request, StreamController<String> out) async {
+    final model = await _languageModel(image: request.image != null, audio: request.audio != null);
     InferenceModelSession? session;
     try {
-      final model = await _llm.obtain(_loadLanguageModel);
       session = await model.openSession(
         systemInstruction: request.systemInstruction,
         temperature: request.temperature,
         maxOutputTokens: request.maxOutputTokens,
+        enableVisionModality: request.image != null ? true : null,
+        enableAudioModality: request.audio != null ? true : null,
+        responseFormat: _supportedFormat(model, request.jsonSchema),
       );
-      await session.addQueryChunk(Message.text(text: request.prompt, isUser: true));
+      await session.addQueryChunk(
+        Message(
+          text: request.prompt,
+          isUser: true,
+          imageBytes: request.image,
+          audioBytes: request.audio,
+        ),
+      );
       await for (final token in session.getResponseAsync()) {
         if (out.isClosed) break;
         out.add(token);
       }
-    } on Object catch (e, s) {
-      if (!out.isClosed) out.addError(e, s);
     } finally {
       await session?.close();
-      if (!out.isClosed) await out.close();
+      // Media encoders are large: free them right away. The next text-only
+      // request reloads the lighter text model.
+      if (request.hasMedia) await unload(AiModelKind.languageModel);
     }
   }
 
-  Future<InferenceModel> _loadLanguageModel() => FlutterEdgeAi.getActiveModel(
-    maxTokens: _contextTokens,
-    preferredBackend: switch (_backend) {
-      ComputeBackend.cpu => PreferredBackend.cpu,
-      ComputeBackend.gpu => PreferredBackend.gpu,
-    },
-    supportImage: false,
-    supportAudio: false,
-  );
+  /// The schema as an engine-enforced format, or null when this model or
+  /// platform cannot enforce it (the prompt still asks for JSON).
+  ResponseFormat? _supportedFormat(InferenceModel model, Map<String, Object?>? schema) {
+    if (schema == null) return null;
+    final format = ResponseFormat.jsonSchema(schema);
+    return model.refusalFor(format) == null ? format : null;
+  }
+
+  Future<void> _runToolChat(ToolChatRequest request, StreamController<String> out) async {
+    final model = await _languageModel();
+    final chat = await model.openChat(
+      systemInstruction: request.systemInstruction,
+      maxOutputTokens: request.maxOutputTokens,
+      supportsFunctionCalls: true,
+      tools: [
+        for (final t in request.tools)
+          Tool(name: t.name, description: t.description, parameters: t.parameters),
+      ],
+    );
+    try {
+      await chat.addQueryChunk(Message(text: request.prompt, isUser: true));
+      final answer = StringBuffer();
+      await for (final response in chat.generateChatResponseWithTools(
+        onToolCall: (call) {
+          // Text written before a call is not the answer: reset the snapshot.
+          answer.clear();
+          if (!out.isClosed) out.add('');
+          return request.onToolCall(call.name, Map<String, Object?>.from(call.args));
+        },
+        maxToolTurns: request.maxToolTurns,
+      )) {
+        if (response is TextResponse && !out.isClosed) {
+          answer.write(response.token);
+          out.add(answer.toString());
+        }
+      }
+    } finally {
+      await chat.close();
+    }
+  }
+
+  bool _loadedWithImage = false;
+  bool _loadedWithAudio = false;
+
+  /// The language model with at least the requested encoders, reloading
+  /// when the resident instance lacks one.
+  Future<InferenceModel> _languageModel({bool image = false, bool audio = false}) async {
+    final missingEncoder = (image && !_loadedWithImage) || (audio && !_loadedWithAudio);
+    if (_llm.isLoaded && missingEncoder) await unload(AiModelKind.languageModel);
+    return _llm.obtain(() async {
+      final model = await FlutterEdgeAi.getActiveModel(
+        maxTokens: _contextTokens,
+        preferredBackend: switch (_backend) {
+          ComputeBackend.cpu => PreferredBackend.cpu,
+          ComputeBackend.gpu => PreferredBackend.gpu,
+        },
+        supportImage: image,
+        supportAudio: audio,
+      );
+      _loadedWithImage = image;
+      _loadedWithAudio = audio;
+      return model;
+    });
+  }
 
   @override
   Future<List<double>> embed(String text, {required bool isQuery}) async {

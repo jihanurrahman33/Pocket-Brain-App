@@ -17,26 +17,30 @@ class AiPackStatus extends Equatable {
   const AiPackStatus({
     required this.totalBytes,
     required this.remainingBytes,
+    required this.isInstalled,
     required this.isLoaded,
   });
 
   /// Download size of the complete pack.
   final int totalBytes;
 
-  /// Bytes still to download; 0 when fully installed.
+  /// Bytes still to download. Can be 0 while [isInstalled] is false: a file
+  /// that finished downloading but was not yet registered (e.g. the app was
+  /// closed while verifying it).
   final int remainingBytes;
+
+  /// Every component is downloaded *and* registered with the engine.
+  final bool isInstalled;
 
   /// Some part of the AI is resident in memory right now.
   final bool isLoaded;
 
-  bool get isInstalled => remainingBytes == 0;
-
   /// Share of the pack already on disk, in [0, 1].
   double get downloadedFraction => totalBytes == 0 ? 1 : 1 - remainingBytes / totalBytes;
 
-  /// Some, but not all, components are present (e.g. an interrupted setup).
-  bool get isPartiallyInstalled => remainingBytes > 0 && remainingBytes < totalBytes;
+  /// Setup started but did not finish (e.g. it was interrupted).
+  bool get isPartiallyInstalled => !isInstalled && remainingBytes < totalBytes;
 
   @override
-  List<Object?> get props => [totalBytes, remainingBytes, isLoaded];
+  List<Object?> get props => [totalBytes, remainingBytes, isInstalled, isLoaded];
 }

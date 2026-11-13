@@ -9,6 +9,7 @@ import '../../entities/recall.dart';
 import '../../entities/task_item.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
+import '../../services/reminder_scheduler.dart';
 
 /// Groups tasks into overdue / upcoming / anytime / completed and attaches
 /// the memories they came from.
@@ -36,7 +37,17 @@ final class GetTaskBoard implements UseCase<Result<TaskBoard>, NoParams> {
   });
 }
 
-typedef NewTask = ({String title, DateTime? dueAt, String? memoryId});
+/// A task to create.
+class NewTask {
+  const NewTask({required this.title, this.dueAt, this.reminderAt, this.memoryId});
+
+  final String title;
+  final DateTime? dueAt;
+  final DateTime? reminderAt;
+
+  /// The memory the task came from, if any.
+  final String? memoryId;
+}
 
 final class AddTask implements UseCase<Result<TaskItem>, NewTask> {
   const AddTask(this._tasks, this._ids, this._clock, this._logger);
@@ -55,6 +66,7 @@ final class AddTask implements UseCase<Result<TaskItem>, NewTask> {
         id: _ids.next(),
         title: title,
         dueAt: params.dueAt,
+        reminderAt: params.reminderAt,
         memoryId: params.memoryId,
         createdAt: _clock.now(),
       );
@@ -99,4 +111,33 @@ final class DeleteTask implements UseCase<Result<void>, String> {
 
   @override
   Future<Result<void>> call(String id) => guard(_logger, 'Delete task', () => _tasks.delete(id));
+}
+
+/// Makes scheduled notifications match the stored tasks; run at start-up
+/// (notifications may have been lost to a reboot, reinstall or new device).
+final class SyncReminders implements UseCase<void, NoParams> {
+  const SyncReminders(this._tasks, this._reminders, this._logger);
+
+  final TaskRepository _tasks;
+  final ReminderScheduler _reminders;
+  final AppLogger _logger;
+
+  @override
+  Future<void> call(NoParams _) async {
+    try {
+      await _reminders.syncAll(await _tasks.getAll());
+    } on Object catch (e, s) {
+      _logger.error('Syncing reminders failed', e, s);
+    }
+  }
+}
+
+/// Task ids from tapped reminder notifications.
+final class ObserveOpenedReminders implements StreamUseCase<String, NoParams> {
+  const ObserveOpenedReminders(this._reminders);
+
+  final ReminderScheduler _reminders;
+
+  @override
+  Stream<String> call(NoParams _) => _reminders.openedTaskIds;
 }

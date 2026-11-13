@@ -97,6 +97,45 @@ streamed token by token. Models load lazily on first use.
    stored untouched. AI-written text is marked with an `AiBadge`.
 5. Tasks extracted by AI are created only when the user ticks them.
 
+## Images, OCR and audio
+
+Gemma 4 E2B is multimodal. Pocket Brain loads its vision or audio encoder
+**only** for a request that needs it and unloads it right after, so text-only
+use keeps the smaller memory footprint (important on 4 GB phones).
+
+- **Images / screenshots:** `GemmaMediaReader.readImage` asks for
+  `{"text", "description"}` (schema-enforced where supported). The memory's
+  text gets the user's note, then `Image: …` and `Text in image: …`, so AI
+  text is always labelled. The image is copied into private storage.
+- **Voice notes:** recorded as 16 kHz mono WAV (PipeWire `pw-record` or ALSA
+  `arecord` on Linux, the `record` plugin on Android), transcribed on-device,
+  and moved into private storage with the memory.
+- Without the AI set up, the image or recording is still saved with the
+  user's note.
+
+## Tool calling (Ask Brain actions)
+
+`AssistantToolbox` (`domain/services/assistant_toolbox.dart`) exposes three
+tools through the engine's function-calling loop:
+
+| Tool | Effect |
+|---|---|
+| `list_tasks` | Read-only; runs immediately and grounds the answer in real tasks |
+| `create_task` | **Proposes** a task (with optional reminder); nothing changes until the user taps Confirm |
+| `save_memory` | **Proposes** a new note; Confirm saves it, Dismiss discards it |
+
+A deterministic guard keeps the "never invent" rule: an answer with no
+matching memories and no tool data is replaced with the fixed
+"couldn't find" reply, whatever the model wrote. Small models sometimes pick
+the wrong tool, which is why every data change needs confirmation.
+
+## Structured output
+
+Capture analysis and image reading request a JSON schema
+(`GenerationRequest.jsonSchema`). The engine enforces it where it can
+(Linux x64, Android arm64, Apple); elsewhere the prompt asks for JSON and the
+lenient parser still applies. Tools and schemas are never combined.
+
 ## Fallbacks
 
 | Situation | Behaviour |

@@ -62,3 +62,22 @@ final class CaptureConfirmed extends CaptureEvent {
 final class CaptureDiscarded extends CaptureEvent {
   const CaptureDiscarded();
 }
+
+/// Starts recording a voice note; [note] is any text typed alongside it.
+final class CaptureRecordingStarted extends CaptureEvent {
+  const CaptureRecordingStarted({this.note = ''});
+
+  final String note;
+
+  @override
+  List<Object?> get props => [note];
+}
+
+/// Finishes the recording and analyses it.
+final class CaptureRecordingStopped extends CaptureEvent {
+  const CaptureRecordingStopped();
+}
+
+final class CaptureRecordingCancelled extends CaptureEvent {
+  const CaptureRecordingCancelled();
+}

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/text_utils.dart';
@@ -10,7 +12,39 @@ import '../../../datasources/ai/on_device_ai_runtime.dart';
 abstract final class AnalysisPrompt {
   static const _maxNoteChars = 6000;
 
+  /// Enforced by the engine where supported, so the reply is valid JSON.
+  static final schema = <String, Object?>{
+    'type': 'object',
+    'properties': {
+      'title': {'type': 'string', 'maxLength': 80},
+      'summary': {'type': 'string'},
+      'category': {'type': 'string', 'enum': MemoryCategories.defaults},
+      'tags': {
+        'type': 'array',
+        'items': {'type': 'string'},
+        'maxItems': 5,
+      },
+      'people': {
+        'type': 'array',
+        'items': {'type': 'string'},
+      },
+      'tasks': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'title': {'type': 'string'},
+            'due': {'type': 'string', 'description': 'YYYY-MM-DD, or empty when none'},
+          },
+          'required': ['title', 'due'],
+        },
+      },
+    },
+    'required': ['title', 'summary', 'category', 'tags', 'people', 'tasks'],
+  };
+
   static GenerationRequest build(String note, DateTime today) => GenerationRequest(
+    jsonSchema: schema,
     systemInstruction: 'You organise notes for a personal memory app. Reply with JSON only.',
     maxOutputTokens: 400,
     temperature: 0.2,
@@ -23,7 +57,7 @@ Analyse the note below and return a JSON object with these keys:
 - "category": one of ${MemoryCategories.defaults.map((c) => '"$c"').join(', ')}
 - "tags": 2 to 5 short lowercase tags
 - "people": names of people mentioned (may be empty)
-- "tasks": actions the writer must do, each {"title": "...", "due": "YYYY-MM-DD" or null}. Empty if none.
+- "tasks": actions the writer must do, each {"title": "...", "due": "YYYY-MM-DD" or ""}. Empty if none.
 Do not add facts that are not in the note.
 
 NOTE:
@@ -39,8 +73,9 @@ abstract final class AnswerPromptBuilder {
   static const _maxHistoryTurns = 4;
   static const _maxTurnChars = 400;
 
-  static GenerationRequest build(AnswerPrompt input) {
+  static GenerationRequest build(AnswerPrompt input, {bool withTools = false}) {
     final prompt = StringBuffer()..writeln('SAVED MEMORIES:');
+    if (input.sources.isEmpty) prompt.writeln('(none matched this question)');
     for (final (i, m) in input.sources.indexed) {
       prompt
         ..writeln('[${i + 1}] ${m.title} (saved ${DateFormat.yMMMd().format(m.createdAt)})')
@@ -65,6 +100,14 @@ abstract final class AnswerPromptBuilder {
         'Answer using only the saved memories above. Cite them like [1] or [2]. '
         'If they do not contain the answer, reply exactly: "${AskReplies.notFound}"',
       );
+    if (withTools) {
+      prompt.writeln(
+        'If the user asks you to create a task or reminder, call create_task. If they '
+        'ask you to remember or note something, call save_memory. For questions about '
+        'their tasks or deadlines, call list_tasks. Never claim an action is done: '
+        'the user confirms it.',
+      );
+    }
     return GenerationRequest(
       systemInstruction:
           'You are Pocket Brain, a personal memory assistant. You only know what '
@@ -94,4 +137,47 @@ abstract final class RecapPrompt {
           'Only mention things in the list.',
     );
   }
+}
+
+/// Reads text in an image and describes it (OCR + understanding).
+abstract final class ImageReadingPrompt {
+  static const schema = <String, Object?>{
+    'type': 'object',
+    'properties': {
+      'text': {
+        'type': 'string',
+        'description': 'All readable text in the image, line by line. Empty if none.',
+      },
+      'description': {
+        'type': 'string',
+        'description': 'One or two sentences describing what the image shows.',
+      },
+    },
+    'required': ['text', 'description'],
+  };
+
+  static GenerationRequest build(Uint8List image) => GenerationRequest(
+    systemInstruction: 'You read images for a personal memory app. Reply with JSON only.',
+    prompt:
+        'Transcribe all readable text in this image exactly as written, keeping '
+        'line breaks, then describe what the image shows in one or two sentences. '
+        'Return {"text": "...", "description": "..."}. Do not guess unreadable text.',
+    image: image,
+    jsonSchema: schema,
+    maxOutputTokens: 1024,
+    temperature: 0.1,
+  );
+}
+
+/// Transcribes speech in a recording.
+abstract final class TranscriptionPrompt {
+  static GenerationRequest build(Uint8List audio) => GenerationRequest(
+    systemInstruction: 'You transcribe voice notes accurately.',
+    prompt:
+        'Transcribe this recording word for word. Reply with only the transcript, '
+        'no commentary. If there is no speech, reply with nothing.',
+    audio: audio,
+    maxOutputTokens: 1024,
+    temperature: 0.1,
+  );
 }

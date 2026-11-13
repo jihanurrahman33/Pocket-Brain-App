@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -11,9 +14,15 @@ import '../../../domain/entities/memory.dart';
 import '../../shared/widgets/memory_source_icon.dart';
 import '../bloc/capture_bloc.dart';
 
-/// Source types the user can pick. Voice, image and PDF are planned.
-const _availableSources = [MemorySource.note, MemorySource.link, MemorySource.clipboard];
-const _plannedSources = [MemorySource.voice, MemorySource.image, MemorySource.pdf];
+/// Source types the user can pick. PDF import is planned.
+const _availableSources = [
+  MemorySource.note,
+  MemorySource.link,
+  MemorySource.clipboard,
+  MemorySource.image,
+  MemorySource.voice,
+];
+const _plannedSources = [MemorySource.pdf];
 
 class CaptureInputForm extends StatefulWidget {
   const CaptureInputForm({super.key, this.initialInput});
@@ -29,6 +38,10 @@ class _CaptureInputFormState extends State<CaptureInputForm> {
   late final _text = TextEditingController(text: widget.initialInput?.text);
   late final _url = TextEditingController(text: widget.initialInput?.url);
   late MemorySource _source = widget.initialInput?.source ?? MemorySource.note;
+  late CapturedMedia? _image = widget.initialInput?.media?.kind == AttachmentKind.image
+      ? widget.initialInput?.media
+      : null;
+  final _picker = ImagePicker();
 
   static const _minLines = 8;
   static const _maxLines = 18;
@@ -41,9 +54,54 @@ class _CaptureInputFormState extends State<CaptureInputForm> {
   }
 
   Future<void> _selectSource(MemorySource source) async {
-    if (source == MemorySource.clipboard) return _pasteFromClipboard();
-    setState(() => _source = source);
+    switch (source) {
+      case MemorySource.clipboard:
+        return _pasteFromClipboard();
+      case MemorySource.image:
+        return _pickImage();
+      case MemorySource.voice:
+        context.read<CaptureBloc>().add(CaptureRecordingStarted(note: _text.text));
+      default:
+        setState(() => _source = source);
+    }
   }
+
+  Future<void> _pickImage() async {
+    final fromCamera = _picker.supportsImageSource(ImageSource.camera)
+        ? await _askImageSource()
+        : false;
+    if (fromCamera == null) return;
+    final file = await _picker.pickImage(
+      source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+    );
+    if (file == null || !mounted) return;
+    setState(() {
+      _source = MemorySource.image;
+      _image = CapturedMedia(path: file.path, kind: AttachmentKind.image);
+    });
+  }
+
+  /// True for camera, false for gallery, null when dismissed.
+  Future<bool?> _askImageSource() => showModalBottomSheet<bool>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: const Text('Take a photo'),
+            onTap: () => Navigator.pop(context, true),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Choose an image or screenshot'),
+            onTap: () => Navigator.pop(context, false),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Future<void> _pasteFromClipboard() async {
     final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim() ?? '';
@@ -59,8 +117,9 @@ class _CaptureInputFormState extends State<CaptureInputForm> {
   void _submit() {
     final input = CaptureInput(
       text: _text.text,
-      source: _source,
+      source: _image != null ? MemorySource.image : _source,
       url: _source == MemorySource.link ? _url.text : null,
+      media: _image,
     );
     if (input.isEmpty) return;
     context.read<CaptureBloc>().add(CaptureSubmitted(input));
@@ -98,6 +157,10 @@ class _CaptureInputFormState extends State<CaptureInputForm> {
           ],
         ),
         const Gap.lg(),
+        if (_image case final image?) ...[
+          _ImagePreview(image: image, onRemove: () => setState(() => _image = null)),
+          const Gap.md(),
+        ],
         if (isLink) ...[
           TextField(
             controller: _url,
@@ -118,8 +181,8 @@ class _CaptureInputFormState extends State<CaptureInputForm> {
             maxLines: _maxLines,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              hintText: isLink
-                  ? 'Why are you saving this? (optional)'
+              hintText: isLink || _image != null
+                  ? 'Add a note (optional)'
                   : 'Type or paste anything… ideas, plans, things you read.',
             ),
           ),
@@ -150,6 +213,39 @@ class _CaptureInputFormState extends State<CaptureInputForm> {
     MemorySource.note => 'Write a note',
     MemorySource.link => 'Paste a link',
     MemorySource.clipboard => 'From clipboard',
+    MemorySource.image => 'Add image',
+    MemorySource.voice => 'Record voice',
     _ => source.label,
   };
+}
+
+class _ImagePreview extends StatelessWidget {
+  const _ImagePreview({required this.image, required this.onRemove});
+
+  final CapturedMedia image;
+  final VoidCallback onRemove;
+
+  static const _maxHeight = 220.0;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: _maxHeight),
+          child: Image.file(File(image.path), fit: BoxFit.contain),
+        ),
+      ),
+      Positioned(
+        top: AppSpacing.xs,
+        right: AppSpacing.xs,
+        child: IconButton.filledTonal(
+          tooltip: 'Remove image',
+          onPressed: onRemove,
+          icon: const Icon(Icons.close_rounded),
+        ),
+      ),
+    ],
+  );
 }

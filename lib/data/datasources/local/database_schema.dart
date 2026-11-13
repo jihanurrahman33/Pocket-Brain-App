@@ -12,7 +12,7 @@ abstract final class Tables {
 
 /// Schema creation and migrations.
 abstract final class DatabaseSchema {
-  static const version = 1;
+  static const version = 2;
 
   static Future<void> create(Database db) async {
     final batch = db.batch()
@@ -41,7 +41,8 @@ abstract final class DatabaseSchema {
           updated_at INTEGER NOT NULL,
           last_viewed_at INTEGER,
           ai_generated INTEGER NOT NULL DEFAULT 0,
-          embedding BLOB
+          embedding BLOB,
+          attachments TEXT NOT NULL DEFAULT '[]'
         )''')
       ..execute('CREATE INDEX idx_memories_created ON ${Tables.memories}(created_at)')
       ..execute('''
@@ -70,7 +71,8 @@ abstract final class DatabaseSchema {
           text TEXT NOT NULL,
           source_ids TEXT NOT NULL DEFAULT '[]',
           grounded INTEGER NOT NULL DEFAULT 1,
-          created_at INTEGER NOT NULL
+          created_at INTEGER NOT NULL,
+          actions TEXT NOT NULL DEFAULT '[]'
         )''')
       ..execute('''
         CREATE TABLE ${Tables.recentSearches} (
@@ -80,6 +82,17 @@ abstract final class DatabaseSchema {
     await batch.commit(noResult: true);
   }
 
-  /// Add a case per version bump; never edit [create] for existing users.
-  static Future<void> migrate(Database db, int from, int to) async {}
+  /// One step per version bump. [create] always builds the latest schema;
+  /// existing installs reach it through these steps.
+  static Future<void> migrate(Database db, int from, int to) async {
+    if (from < 2) await _toV2(db);
+  }
+
+  /// v2: images/recordings on memories, assistant actions on chat messages.
+  static Future<void> _toV2(Database db) async {
+    final batch = db.batch()
+      ..execute("ALTER TABLE ${Tables.memories} ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]'")
+      ..execute("ALTER TABLE ${Tables.messages} ADD COLUMN actions TEXT NOT NULL DEFAULT '[]'");
+    await batch.commit(noResult: true);
+  }
 }

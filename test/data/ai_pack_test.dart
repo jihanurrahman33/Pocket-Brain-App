@@ -65,6 +65,22 @@ void main() {
       expect(progress.every((p) => p >= 1482 / total - 1e-9), isTrue);
     });
 
+    // Regression: a file that finished downloading but was never registered
+    // (app closed while verifying) was reported as installed, so setup never
+    // finished.
+    test('a downloaded but unregistered file is not "installed"', () async {
+      final runtime = FakeAiRuntime(installed: {AiModelKind.embedder})
+        ..partialBytes[AiModelKind.languageModel] = FakeAiRuntime.languageModelBytes;
+      final repo = OnDeviceModelRepository(runtime, const SilentLogger());
+      expect(repo.status().remainingBytes, 0);
+      expect(repo.status().isInstalled, isFalse);
+      expect(repo.status().isPartiallyInstalled, isTrue);
+
+      expect((await repo.install(onProgress: (_) {})).isSuccess, isTrue);
+      expect(runtime.installOrder, [AiModelKind.languageModel]);
+      expect(repo.status().isInstalled, isTrue);
+    });
+
     test('cancel stops the whole download', () async {
       final repo = OnDeviceModelRepository(FakeAiRuntime(), const SilentLogger());
       final pending = repo.install(onProgress: (_) {});

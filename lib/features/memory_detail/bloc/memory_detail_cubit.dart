@@ -61,7 +61,8 @@ class MemoryDetailCubit extends AutoRefreshCubit<MemoryDetails> {
   Future<Failure?> delete() async => (await _actions.deleteMemory(memoryId)).failureOrNull;
 
   Future<Failure?> addTask(String title, DateTime? dueAt) async =>
-      (await _actions.addTask((title: title, dueAt: dueAt, memoryId: memoryId))).failureOrNull;
+      (await _actions.addTask(NewTask(title: title, dueAt: dueAt, memoryId: memoryId)))
+          .failureOrNull;
 
   Future<Failure?> toggleTask(TaskItem task) async =>
       (await _actions.toggleTask(task)).failureOrNull;

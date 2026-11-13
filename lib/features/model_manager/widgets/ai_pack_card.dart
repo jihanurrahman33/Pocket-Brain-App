@@ -160,11 +160,11 @@ class _PackAction extends StatelessWidget {
     return FilledButton.icon(
       onPressed: () => bloc.add(const ModelInstallRequested()),
       icon: const Icon(Icons.download_rounded),
-      label: Text(
-        pack.isPartiallyInstalled || state.failure != null
-            ? 'Resume setup ($size left)'
-            : 'Set up ($size)',
-      ),
+      label: Text(switch (pack) {
+        AiPackStatus(remainingBytes: 0) => 'Finish setup',
+        _ when pack.isPartiallyInstalled || state.failure != null => 'Resume setup ($size left)',
+        _ => 'Set up ($size)',
+      }),
     );
   }
 }

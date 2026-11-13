@@ -34,6 +34,11 @@ dependencies:
   get_it: ^9.3.0
   sqflite_common: ^2.5.17
   crypto: ^3.0.8
+  record: ^7.2.0
+  image_picker: ^1.2.4
+  flutter_local_notifications: ^23.0.2
+  timezone: ^0.11.2
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,17 +10,21 @@ import '../../core/utils/clock.dart';
 import '../../core/utils/id_generator.dart';
 import '../../data/datasources/ai/on_device_ai_runtime.dart';
 import '../../data/datasources/local/app_database.dart';
+import '../../data/repositories/file_attachment_store.dart';
 import '../../data/repositories/json_file_export_repository.dart';
 import '../../data/repositories/on_device_model_repository.dart';
 import '../../data/repositories/prefs_preferences_repository.dart';
+import '../../data/repositories/reminder_syncing_task_repository.dart';
 import '../../data/repositories/sqlite_collection_repository.dart';
 import '../../data/repositories/sqlite_conversation_repository.dart';
 import '../../data/repositories/sqlite_memory_repository.dart';
 import '../../data/repositories/sqlite_task_repository.dart';
 import '../../data/services/ai/generation_services.dart';
+import '../../data/services/ai/media_reader.dart';
 import '../../data/services/ai/memory_analyzers.dart';
 import '../../data/services/web/http_link_reader.dart';
 import '../../domain/entities/search.dart';
+import '../../domain/repositories/attachment_store.dart';
 import '../../domain/repositories/collection_repository.dart';
 import '../../domain/repositories/conversation_repository.dart';
 import '../../domain/repositories/data_export_repository.dart';
@@ -29,8 +35,10 @@ import '../../domain/repositories/search_history_repository.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../../domain/services/ai_services.dart';
 import '../../domain/services/relevance_scorer.dart';
+import '../../domain/services/reminder_scheduler.dart';
 import '../../domain/usecases/ask/ask_usecases.dart';
 import '../../domain/usecases/capture/capture_usecases.dart';
+import '../../domain/usecases/capture/voice_usecases.dart';
 import '../../domain/usecases/collections/collection_usecases.dart';
 import '../../domain/usecases/indexing/indexing_usecases.dart';
 import '../../domain/usecases/memories/memory_usecases.dart';
@@ -61,6 +69,9 @@ class Infrastructure {
     required this.preferences,
     required this.aiRuntime,
     required this.httpClient,
+    required this.attachmentsDirectory,
+    required this.voiceRecorder,
+    required this.reminderScheduler,
     this.exporter = const JsonFileExportRepository(),
     this.logger = const DebugAppLogger(),
     this.clock = const SystemClock(),
@@ -70,6 +81,11 @@ class Infrastructure {
   final SharedPreferences preferences;
   final OnDeviceAiRuntime aiRuntime;
   final http.Client httpClient;
+
+  /// Private folder for images and recordings kept with memories.
+  final Directory attachmentsDirectory;
+  final VoiceRecorder voiceRecorder;
+  final ReminderScheduler reminderScheduler;
   final DataExportRepository exporter;
   final AppLogger logger;
   final Clock clock;
@@ -103,14 +119,22 @@ void _registerRepositories(Infrastructure infra) {
     ..registerSingleton<MemoryRepository>(memories, dispose: (_) => memories.disposeChanges())
     ..registerSingleton<MemoryMetadataStore>(memories)
     ..registerLazySingleton<CollectionRepository>(() => SqliteCollectionRepository(sl()))
-    ..registerLazySingleton<TaskRepository>(() => SqliteTaskRepository(sl()))
+    ..registerSingleton<ReminderScheduler>(infra.reminderScheduler)
+    // Every task write also updates its notification (Decorator).
+    ..registerLazySingleton<TaskRepository>(
+      () => ReminderSyncingTaskRepository(SqliteTaskRepository(sl()), sl()),
+    )
     ..registerLazySingleton<ConversationRepository>(() => SqliteConversationRepository(sl()))
     ..registerLazySingleton<SearchHistoryRepository>(() => SqliteSearchHistoryRepository(sl()))
     ..registerLazySingleton<PreferencesRepository>(
       () => SharedPrefsPreferencesRepository(infra.preferences),
     )
     ..registerLazySingleton<ModelRepository>(() => OnDeviceModelRepository(sl(), sl()))
-    ..registerSingleton<DataExportRepository>(infra.exporter);
+    ..registerSingleton<DataExportRepository>(infra.exporter)
+    ..registerLazySingleton<AttachmentStore>(
+      () => FileAttachmentStore(infra.attachmentsDirectory, sl()),
+    )
+    ..registerSingleton<VoiceRecorder>(infra.voiceRecorder);
 }
 
 void _registerServices() {
@@ -119,6 +143,7 @@ void _registerServices() {
   sl
     ..registerLazySingleton<TextEmbedder>(() => EmbeddingGemmaTextEmbedder(sl(), sl()))
     ..registerLazySingleton<LinkReader>(() => HttpLinkReader(sl(), sl()))
+    ..registerLazySingleton<MediaReader>(() => GemmaMediaReader(sl()))
     ..registerLazySingleton<MemoryAnalyzer>(
       () => FallbackMemoryAnalyzer(
         primary: GemmaMemoryAnalyzer(sl(), const RuleBasedMemoryAnalyzer()),
@@ -162,6 +187,7 @@ void _registerUseCases() {
       () => AnalyzeCapture(
         linkReader: sl(),
         analyzer: sl(),
+        mediaReader: sl(),
         preferences: sl(),
         findSimilar: sl(),
         clock: sl(),
@@ -172,6 +198,7 @@ void _registerUseCases() {
       () => SaveCapture(
         memories: sl(),
         tasks: sl(),
+        attachments: sl(),
         indexMemory: sl(),
         ids: sl(),
         clock: sl(),
@@ -203,7 +230,11 @@ void _registerUseCases() {
     ..registerLazySingleton(() => ToggleArchived(sl(), sl(), sl()))
     ..registerLazySingleton(() => MoveMemoryToCollection(sl(), sl(), sl()))
     ..registerLazySingleton(() => EditMemory(sl(), sl(), sl(), sl()))
-    ..registerLazySingleton(() => DeleteMemory(sl(), sl()))
+    ..registerLazySingleton(() => DeleteMemory(sl(), sl(), sl()))
+    // Voice
+    ..registerLazySingleton(() => StartVoiceRecording(sl(), sl()))
+    ..registerLazySingleton(() => StopVoiceRecording(sl(), sl()))
+    ..registerLazySingleton(() => CancelVoiceRecording(sl()))
     // Collections
     ..registerLazySingleton(() => GetCollections(sl(), sl()))
     ..registerLazySingleton(() => GetCollectionContents(sl(), sl(), sl()))
@@ -215,6 +246,8 @@ void _registerUseCases() {
     ..registerLazySingleton(() => ToggleTaskDone(sl(), sl()))
     ..registerLazySingleton(() => SetTaskReminder(sl(), sl()))
     ..registerLazySingleton(() => DeleteTask(sl(), sl()))
+    ..registerLazySingleton(() => SyncReminders(sl(), sl(), sl()))
+    ..registerLazySingleton(() => ObserveOpenedReminders(sl()))
     // Ask
     ..registerLazySingleton(() => RetrieveAnswerSources(sl()))
     ..registerLazySingleton(
@@ -222,10 +255,22 @@ void _registerUseCases() {
         conversations: sl(),
         retrieveSources: sl(),
         generator: sl(),
+        tasks: sl(),
         ids: sl(),
         clock: sl(),
       ),
     )
+    ..registerLazySingleton(
+      () => ConfirmAssistantAction(
+        conversations: sl(),
+        addTask: sl(),
+        saveCapture: sl(),
+        analyzer: sl(),
+        clock: sl(),
+        logger: sl(),
+      ),
+    )
+    ..registerLazySingleton(() => DismissAssistantAction(sl(), sl()))
     ..registerLazySingleton(() => GetConversations(sl(), sl()))
     ..registerLazySingleton(() => OpenConversation(sl(), sl(), sl()))
     ..registerLazySingleton(() => DeleteConversation(sl(), sl()))
@@ -273,6 +318,7 @@ void _registerUseCases() {
         sl<MemoryRepository>(),
         sl<CollectionRepository>(),
         sl<SearchHistoryRepository>(),
+        sl<AttachmentStore>(),
       ], sl()),
     );
 }
@@ -302,7 +348,15 @@ void _registerPresentation() {
       ),
     )
     ..registerFactory(
-      () => CaptureBloc(analyzeCapture: sl(), saveCapture: sl(), getCollections: sl()),
+      () => CaptureBloc(
+        analyzeCapture: sl(),
+        saveCapture: sl(),
+        getCollections: sl(),
+        startRecording: sl(),
+        stopRecording: sl(),
+        cancelRecording: sl(),
+        clock: sl(),
+      ),
     )
     ..registerFactory(
       () => AskBloc(
@@ -312,6 +366,8 @@ void _registerPresentation() {
         deleteConversation: sl(),
         getSuggestions: sl(),
         getCollections: sl(),
+        confirmAction: sl(),
+        dismissAction: sl(),
       ),
     )
     ..registerFactory(

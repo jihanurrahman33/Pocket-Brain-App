@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/widgets/feedback_widgets.dart';
+import '../../../domain/entities/capture.dart';
+import '../../../domain/entities/memory.dart';
 import '../../shared/widgets/memory_views.dart';
 import '../bloc/capture_bloc.dart';
 import '../widgets/capture_input_form.dart';
 import '../widgets/capture_review_view.dart';
+import '../widgets/recording_view.dart';
 
 class CapturePage extends StatelessWidget {
   const CapturePage({super.key});
@@ -46,7 +49,8 @@ class CapturePage extends StatelessWidget {
             child: switch (state) {
               CaptureEditing(:final input) => CaptureInputForm(initialInput: input),
               CaptureSaved() => const CaptureInputForm(),
-              CaptureAnalyzing() => const _AnalyzingView(),
+              CaptureRecording() => RecordingView(state: state),
+              CaptureAnalyzing(:final input) => _AnalyzingView(input: input),
               CaptureReviewing() => CaptureReviewView(
                 key: ValueKey(state.review.draft),
                 state: state,
@@ -60,13 +64,24 @@ class CapturePage extends StatelessWidget {
 }
 
 class _AnalyzingView extends StatelessWidget {
-  const _AnalyzingView();
+  const _AnalyzingView({required this.input});
+
+  final CaptureInput input;
 
   @override
-  Widget build(BuildContext context) => const EmptyState(
-    icon: Icons.auto_awesome_rounded,
-    title: 'Understanding your memory…',
-    message: 'Running privately on this device.',
-    action: CircularProgressIndicator(),
-  );
+  Widget build(BuildContext context) {
+    final (icon, title) = switch (input.media?.kind) {
+      AttachmentKind.image => (Icons.image_search_rounded, 'Reading your image…'),
+      AttachmentKind.audio => (Icons.graphic_eq_rounded, 'Transcribing your voice note…'),
+      null => (Icons.auto_awesome_rounded, 'Understanding your memory…'),
+    };
+    return EmptyState(
+      icon: icon,
+      title: title,
+      message: input.media == null
+          ? 'Running privately on this device.'
+          : 'Running privately on this device. Images and audio take a little longer.',
+      action: const CircularProgressIndicator(),
+    );
+  }
 }

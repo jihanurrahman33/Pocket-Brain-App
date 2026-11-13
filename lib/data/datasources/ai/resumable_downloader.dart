@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -185,12 +186,17 @@ class ResumableDownloader {
       await spec.partial.delete();
       throw DownloadIntegrityException('Expected ${spec.expectedBytes} bytes, got $length');
     }
-    final digest = await sha256.bind(spec.partial.openRead()).first;
-    if (digest.toString() != spec.sha256.toLowerCase()) {
+    // Hashing gigabytes takes a while; do it off the UI isolate so the app
+    // stays responsive while a model is verified.
+    final digest = await Isolate.run(() => _sha256Of(spec.partial.path));
+    if (digest != spec.sha256.toLowerCase()) {
       await spec.partial.delete();
       throw const DownloadIntegrityException('Checksum mismatch');
     }
   }
+
+  static Future<String> _sha256Of(String path) async =>
+      (await sha256.bind(File(path).openRead()).first).toString();
 
   /// Removes both the finished file and any partial download.
   static Future<void> deleteAll(DownloadSpec spec) async {

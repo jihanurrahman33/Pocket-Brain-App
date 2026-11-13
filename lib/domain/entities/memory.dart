@@ -16,6 +16,20 @@ enum MemorySource {
   final String label;
 }
 
+enum AttachmentKind { image, audio }
+
+/// A file kept with a memory (a photo, screenshot or voice recording).
+class Attachment extends Equatable {
+  const Attachment({required this.path, required this.kind});
+
+  /// Location inside the app's private storage.
+  final String path;
+  final AttachmentKind kind;
+
+  @override
+  List<Object?> get props => [path, kind];
+}
+
 /// The built-in smart categories. Users may also keep their own.
 abstract final class MemoryCategories {
   static const fallback = 'Personal';
@@ -54,6 +68,7 @@ class Memory extends Equatable {
     this.lastViewedAt,
     this.aiGenerated = false,
     this.embedding,
+    this.attachments = const [],
   });
 
   final String id;
@@ -74,6 +89,13 @@ class Memory extends Equatable {
 
   /// Semantic vector, present once the embedding model has processed it.
   final Float32List? embedding;
+
+  /// Images or recordings this memory was captured from.
+  final List<Attachment> attachments;
+
+  Attachment? get image => attachments.where((a) => a.kind == AttachmentKind.image).firstOrNull;
+
+  Attachment? get recording => attachments.where((a) => a.kind == AttachmentKind.audio).firstOrNull;
 
   /// All text that search and embeddings consider.
   String get searchableText => '$title\n$summary\n${tags.join(' ')}\n$category\n$content';
@@ -113,6 +135,7 @@ class Memory extends Equatable {
     lastViewedAt: lastViewedAt != null ? lastViewedAt() : this.lastViewedAt,
     aiGenerated: aiGenerated ?? this.aiGenerated,
     embedding: embedding != null ? embedding() : this.embedding,
+    attachments: attachments,
   );
 
   @override
@@ -133,5 +156,6 @@ class Memory extends Equatable {
     lastViewedAt,
     aiGenerated,
     hasEmbedding,
+    attachments,
   ];
 }

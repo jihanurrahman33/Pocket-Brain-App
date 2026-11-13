@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'assistant.dart';
+
 /// An Ask Brain conversation, optionally scoped to one collection.
 class Conversation extends Equatable {
   const Conversation({
@@ -31,6 +33,7 @@ class ChatMessage extends Equatable {
     required this.createdAt,
     this.sourceIds = const [],
     this.grounded = true,
+    this.actions = const [],
   });
 
   final String id;
@@ -43,8 +46,31 @@ class ChatMessage extends Equatable {
   final bool grounded;
   final DateTime createdAt;
 
+  /// Changes the assistant proposed in this answer, awaiting confirmation.
+  final List<AssistantAction> actions;
+
   bool get isUser => role == ChatRole.user;
 
+  ChatMessage withAction(AssistantAction action) => ChatMessage(
+    id: id,
+    conversationId: conversationId,
+    role: role,
+    text: text,
+    createdAt: createdAt,
+    sourceIds: sourceIds,
+    grounded: grounded,
+    actions: [for (final a in actions) a.id == action.id ? action : a],
+  );
+
   @override
-  List<Object?> get props => [id, conversationId, role, text, sourceIds, grounded, createdAt];
+  List<Object?> get props => [
+    id,
+    conversationId,
+    role,
+    text,
+    sourceIds,
+    grounded,
+    createdAt,
+    actions,
+  ];
 }

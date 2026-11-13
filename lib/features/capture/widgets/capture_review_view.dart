@@ -7,7 +7,10 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/feedback_widgets.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../../domain/entities/capture.dart';
+import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/memory_analysis.dart';
+import '../../shared/widgets/attachment_views.dart';
 import '../../shared/widgets/memory_views.dart';
 import '../bloc/capture_bloc.dart';
 
@@ -29,6 +32,12 @@ class CaptureReviewView extends StatelessWidget {
         _SaveBar(isSaving: state.isSaving),
       ],
       secondary: [
+        if (review.draft.media case final media? when media.kind == AttachmentKind.image) ...[
+          const SectionHeader('Image'),
+          AttachmentImage(path: media.path),
+        ],
+        if (review.draft.reading case final reading? when !reading.isEmpty)
+          _MediaReadingCard(reading: reading, kind: review.draft.media!.kind),
         if (review.tasks.isNotEmpty) _SuggestedTasks(tasks: review.tasks),
         if (review.draft.similar.isNotEmpty) ...[
           SectionHeader(
@@ -38,7 +47,7 @@ class CaptureReviewView extends StatelessWidget {
           ),
           MemoryTileList(memories: [for (final s in review.draft.similar) s.memory]),
         ],
-        const SectionHeader('Your original'),
+        SectionHeader(review.draft.media == null ? 'Your original' : 'Text that will be saved'),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -46,6 +55,42 @@ class CaptureReviewView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// What the AI read from an image or heard in a recording.
+class _MediaReadingCard extends StatelessWidget {
+  const _MediaReadingCard({required this.reading, required this.kind});
+
+  final MediaReading reading;
+  final AttachmentKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Card(
+        color: theme.colorScheme.aiContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AiBadge(label: kind == AttachmentKind.image ? 'Read from your image' : 'Transcript'),
+              if (reading.description.isNotEmpty) ...[
+                const Gap.sm(),
+                Text(reading.description, style: theme.textTheme.bodyMedium),
+              ],
+              if (reading.extractedText.isNotEmpty) ...[
+                const Gap.sm(),
+                SelectableText(reading.extractedText, style: theme.textTheme.bodyMedium),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

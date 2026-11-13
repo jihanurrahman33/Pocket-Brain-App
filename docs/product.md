@@ -49,11 +49,12 @@ personal, not like a complicated note-taking app.
 | Collections | Must | ✅ |
 | Related memories, duplicate detection | Next | ✅ |
 | Daily digest, recall | Next | ✅ |
-| Tasks with confirmed extraction | Next | ✅ (reminders stored; no system notifications yet) |
+| Tasks with confirmed extraction | Next | ✅ |
+| Voice capture (on-device transcription) | Next | ✅ (playback ⏳) |
+| Screenshot / image understanding + OCR | Next | ✅ |
+| Reminder notifications | Next | ✅ |
+| Ask Brain actions (tool calling, confirm first) | Next | ✅ |
 | Share-to-app (Android) | Must | ⏳ |
-| Voice capture | Next | ⏳ |
-| Screenshot / image understanding | Next | ⏳ |
 | PDF import | Next | ⏳ |
-| Reminder notifications | Next | ⏳ |
 | Biometric app lock, private collections | Later | ⏳ |
 | Memory timeline, encrypted backup | Later | ⏳ |

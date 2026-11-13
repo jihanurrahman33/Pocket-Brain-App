@@ -1,3 +1,4 @@
+import '../../../core/error/failure.dart';
 import '../../../core/error/guard.dart';
 import '../../../core/error/result.dart';
 import '../../../core/logging/app_logger.dart';
@@ -6,13 +7,19 @@ import '../../../core/utils/clock.dart';
 import '../../../core/utils/id_generator.dart';
 import '../../../core/utils/text_utils.dart';
 import '../../entities/ask.dart';
+import '../../entities/assistant.dart';
+import '../../entities/capture.dart';
 import '../../entities/conversation.dart';
 import '../../entities/memory.dart';
 import '../../entities/search.dart';
 import '../../repositories/conversation_repository.dart';
 import '../../repositories/memory_repository.dart';
+import '../../repositories/task_repository.dart';
 import '../../services/ai_services.dart';
+import '../../services/assistant_toolbox.dart';
+import '../capture/capture_usecases.dart';
 import '../search/search_usecases.dart';
+import '../tasks/task_usecases.dart';
 
 typedef SourceQuery = ({String question, String? collectionId});
 
@@ -52,19 +59,25 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     required ConversationRepository conversations,
     required RetrieveAnswerSources retrieveSources,
     required AnswerGenerator generator,
+    required TaskRepository tasks,
     required IdGenerator ids,
     required Clock clock,
   }) : _conversations = conversations,
        _retrieveSources = retrieveSources,
        _generator = generator,
+       _tasks = tasks,
        _ids = ids,
        _clock = clock;
 
   final ConversationRepository _conversations;
   final RetrieveAnswerSources _retrieveSources;
   final AnswerGenerator _generator;
+  final TaskRepository _tasks;
   final IdGenerator _ids;
   final Clock _clock;
+
+  /// Shown when the model only proposed actions and wrote no answer text.
+  static const actionsOnlyReply = "I've prepared this for you. Confirm it below.";
 
   static const _titleLength = 48;
 
@@ -103,31 +116,61 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     ));
     yield AskSourcesFound(sources);
 
-    final buffer = StringBuffer();
-    await for (final chunk in _answerStream(question, sources, request.history)) {
+    final toolbox = AssistantToolbox(tasks: _tasks, ids: _ids, clock: _clock);
+    var snapshot = '';
+    await for (final text in _answerStream(question, sources, request.history, toolbox)) {
       if (request.isStopRequested()) break;
-      buffer.write(chunk);
-      yield AskAnswerUpdated(buffer.toString());
+      snapshot = text;
+      yield AskAnswerUpdated(snapshot);
     }
 
-    final text = buffer.toString().trim();
-    final grounded = sources.isNotEmpty && !text.contains(AskReplies.notFound);
-    final answer = _message(
-      conversation.id,
-      ChatRole.assistant,
-      text.isEmpty ? AskReplies.notFound : text,
-      sourceIds: grounded ? [for (final m in sources) m.id] : const [],
-      grounded: grounded,
-    );
+    final answer = _finalAnswer(conversation.id, snapshot.trim(), sources, toolbox);
     await _conversations.saveMessage(answer);
     yield AskAnswerCompleted(answer);
   }
 
-  Stream<String> _answerStream(String question, List<Memory> sources, List<ChatMessage> history) {
-    if (sources.isEmpty) return Stream.value(AskReplies.notFound);
-    if (!_generator.isAvailable) return Stream.value(AskReplies.modelMissing);
+  Stream<String> _answerStream(
+    String question,
+    List<Memory> sources,
+    List<ChatMessage> history,
+    AssistantToolbox toolbox,
+  ) {
+    if (!_generator.isAvailable) {
+      return Stream.value(sources.isEmpty ? AskReplies.notFound : AskReplies.modelMissing);
+    }
     return _generator.generate(
       AnswerPrompt(question: question, sources: sources, history: history),
+      toolbox: toolbox,
+    );
+  }
+
+  /// Applies the grounding rule: an answer must rest on retrieved memories
+  /// or on data a tool returned. Otherwise it is replaced with the fixed
+  /// "couldn't find" reply, whatever the model wrote.
+  ChatMessage _finalAnswer(
+    String conversationId,
+    String text,
+    List<Memory> sources,
+    AssistantToolbox toolbox,
+  ) {
+    final proposals = toolbox.proposals;
+    final hasEvidence = sources.isNotEmpty || toolbox.readUserData;
+    final String reply;
+    if (!hasEvidence && proposals.isEmpty) {
+      reply = AskReplies.notFound;
+    } else if (text.isEmpty) {
+      reply = proposals.isNotEmpty ? actionsOnlyReply : AskReplies.notFound;
+    } else {
+      reply = text;
+    }
+    final cites = sources.isNotEmpty && !reply.contains(AskReplies.notFound);
+    return _message(
+      conversationId,
+      ChatRole.assistant,
+      reply,
+      sourceIds: cites ? [for (final m in sources) m.id] : const [],
+      grounded: hasEvidence && !reply.contains(AskReplies.notFound),
+      actions: proposals,
     );
   }
 
@@ -143,6 +186,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     String text, {
     List<String> sourceIds = const [],
     bool grounded = true,
+    List<AssistantAction> actions = const [],
   }) => ChatMessage(
     id: _ids.next(),
     conversationId: conversationId,
@@ -150,6 +194,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     text: text,
     sourceIds: sourceIds,
     grounded: grounded,
+    actions: actions,
     createdAt: _clock.now(),
   );
 }
@@ -222,4 +267,98 @@ final class GetSuggestedQuestions implements UseCase<List<String>, NoParams> {
       starterQuestions.first,
     ].take(_maxSuggestions).toList();
   }
+}
+
+/// Which proposed action of which answer the user decided on.
+typedef ActionDecision = ({ChatMessage message, String actionId});
+
+/// Carries out an action Ask Brain proposed, after the user confirmed it,
+/// and records that it was done.
+final class ConfirmAssistantAction implements UseCase<Result<ChatMessage>, ActionDecision> {
+  ConfirmAssistantAction({
+    required ConversationRepository conversations,
+    required AddTask addTask,
+    required SaveCapture saveCapture,
+    required MemoryAnalyzer analyzer,
+    required Clock clock,
+    required AppLogger logger,
+  }) : _conversations = conversations,
+       _addTask = addTask,
+       _saveCapture = saveCapture,
+       _analyzer = analyzer,
+       _clock = clock,
+       _logger = logger;
+
+  final ConversationRepository _conversations;
+  final AddTask _addTask;
+  final SaveCapture _saveCapture;
+  final MemoryAnalyzer _analyzer;
+  final Clock _clock;
+  final AppLogger _logger;
+
+  @override
+  Future<Result<ChatMessage>> call(ActionDecision decision) async {
+    final action = decision.message.actions.where((a) => a.id == decision.actionId).firstOrNull;
+    if (action == null) return const Err(NotFoundFailure());
+    if (!action.isPending) return Success(decision.message);
+
+    final outcome = switch (action.type) {
+      AssistantActionType.createTask => await _createTask(action),
+      AssistantActionType.saveMemory => await _saveMemory(action),
+    };
+    if (outcome case Err(:final failure)) return Err(failure);
+    return guard(_logger, 'Record confirmed action', () async {
+      final updated = decision.message.withAction(action.withStatus(AssistantActionStatus.done));
+      await _conversations.saveMessage(updated);
+      return updated;
+    });
+  }
+
+  Future<Result<void>> _createTask(AssistantAction action) async {
+    final result = await _addTask(
+      NewTask(
+        title: action.args['title'] ?? '',
+        dueAt: DateTime.tryParse(action.args['due'] ?? ''),
+        reminderAt: DateTime.tryParse(action.args['reminder'] ?? ''),
+      ),
+    );
+    return result.fold(onSuccess: (_) => const Success(null), onFailure: Err.new);
+  }
+
+  Future<Result<void>> _saveMemory(AssistantAction action) async {
+    final text = action.args['text'] ?? '';
+    final analysis = await _analyzer.analyze(text, now: _clock.now());
+    final result = await _saveCapture(
+      SaveCaptureRequest(
+        content: text,
+        source: MemorySource.note,
+        title: analysis.title,
+        summary: analysis.summary,
+        category: analysis.category,
+        tags: analysis.tags,
+        tasks: const [],
+        acceptedAiAsIs: analysis.byModel,
+      ),
+    );
+    return result.fold(onSuccess: (_) => const Success(null), onFailure: Err.new);
+  }
+}
+
+/// Declines a proposed action; nothing changes except its status.
+final class DismissAssistantAction implements UseCase<Result<ChatMessage>, ActionDecision> {
+  const DismissAssistantAction(this._conversations, this._logger);
+
+  final ConversationRepository _conversations;
+  final AppLogger _logger;
+
+  @override
+  Future<Result<ChatMessage>> call(ActionDecision decision) =>
+      guard(_logger, 'Dismiss action', () async {
+        final action = decision.message.actions.firstWhere((a) => a.id == decision.actionId);
+        final updated = decision.message.withAction(
+          action.withStatus(AssistantActionStatus.dismissed),
+        );
+        await _conversations.saveMessage(updated);
+        return updated;
+      });
 }

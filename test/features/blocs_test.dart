@@ -75,6 +75,7 @@ void main() {
         analyzeCapture: AnalyzeCapture(
           linkReader: sl(),
           analyzer: _CrashingAnalyzer(),
+          mediaReader: sl(),
           preferences: sl(),
           findSimilar: sl(),
           clock: FixedClock(),
@@ -82,6 +83,10 @@ void main() {
         ),
         saveCapture: sl(),
         getCollections: sl(),
+        startRecording: sl(),
+        stopRecording: sl(),
+        cancelRecording: sl(),
+        clock: FixedClock(),
       ),
       act: (b) async {
         b.add(const CaptureSubmitted(note));

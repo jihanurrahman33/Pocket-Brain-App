@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../../domain/entities/assistant.dart';
 import '../../domain/entities/conversation.dart';
 import '../../domain/entities/memory.dart';
 import '../../domain/entities/memory_collection.dart';
@@ -41,8 +42,19 @@ abstract final class MemoryMapper {
       lastViewedAt: _optionalDate(row['last_viewed_at']),
       aiGenerated: _bool(row['ai_generated']),
       embedding: blob == null ? null : vectorFromBytes(blob),
+      attachments: attachmentsFromJson(row['attachments'] as String?),
     );
   }
+
+  static List<Attachment> attachmentsFromJson(String? json) => [
+    for (final item in (jsonDecode(json ?? '[]') as List<Object?>).cast<Map<String, Object?>>())
+      if (AttachmentKind.values.asNameMap()[item['kind']] case final kind?)
+        Attachment(path: item['path']! as String, kind: kind),
+  ];
+
+  static String attachmentsToJson(List<Attachment> attachments) => jsonEncode([
+    for (final a in attachments) {'path': a.path, 'kind': a.kind.name},
+  ]);
 
   static Row toRow(Memory m) => {
     'id': m.id,
@@ -61,6 +73,7 @@ abstract final class MemoryMapper {
     'last_viewed_at': m.lastViewedAt?.millisecondsSinceEpoch,
     'ai_generated': _int(m.aiGenerated),
     'embedding': m.embedding == null ? null : vectorToBytes(m.embedding!),
+    'attachments': attachmentsToJson(m.attachments),
   };
 
   /// Copies so the vector owns aligned memory.
@@ -135,7 +148,28 @@ abstract final class ConversationMapper {
     sourceIds: _stringList(row['source_ids']),
     grounded: _bool(row['grounded']),
     createdAt: _date(row['created_at']),
+    actions: actionsFromJson(row['actions'] as String?),
   );
+
+  static List<AssistantAction> actionsFromJson(String? json) => [
+    for (final item in (jsonDecode(json ?? '[]') as List<Object?>).cast<Map<String, Object?>>())
+      if ((
+            AssistantActionType.values.asNameMap()[item['type']],
+            AssistantActionStatus.values.asNameMap()[item['status']],
+          )
+          case (final type?, final status?))
+        AssistantAction(
+          id: item['id']! as String,
+          type: type,
+          status: status,
+          args: (item['args']! as Map<String, Object?>).cast<String, String>(),
+        ),
+  ];
+
+  static String actionsToJson(List<AssistantAction> actions) => jsonEncode([
+    for (final a in actions)
+      {'id': a.id, 'type': a.type.name, 'status': a.status.name, 'args': a.args},
+  ]);
 
   static Row messageToRow(ChatMessage m) => {
     'id': m.id,
@@ -145,5 +179,6 @@ abstract final class ConversationMapper {
     'source_ids': jsonEncode(m.sourceIds),
     'grounded': _int(m.grounded),
     'created_at': m.createdAt.millisecondsSinceEpoch,
+    'actions': actionsToJson(m.actions),
   };
 }

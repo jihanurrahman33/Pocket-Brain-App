@@ -20,6 +20,17 @@ final class CaptureEditing extends CaptureState {
   List<Object?> get props => [failure, input];
 }
 
+/// Recording a voice note.
+final class CaptureRecording extends CaptureState {
+  const CaptureRecording({required this.startedAt, this.note = ''});
+
+  final DateTime startedAt;
+  final String note;
+
+  @override
+  List<Object?> get props => [startedAt, note];
+}
+
 final class CaptureAnalyzing extends CaptureState {
   const CaptureAnalyzing(this.input);
 
@@ -132,6 +143,7 @@ class CaptureReview extends Equatable {
     tasks: tasks,
     collectionId: collectionId,
     acceptedAiAsIs: analysis.byModel && !edited,
+    media: draft.media,
   );
 
   @override

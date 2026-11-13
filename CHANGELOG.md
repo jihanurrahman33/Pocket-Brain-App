@@ -6,6 +6,18 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Image & screenshot capture with on-device OCR**: the AI reads the text in
+  an image and describes it; the image is kept with the memory.
+- **Voice capture**: record a note (PipeWire/ALSA on Linux, microphone on
+  Android), transcribed on-device and kept with the memory.
+- **Ask Brain actions** via tool calling: create tasks/reminders, save notes
+  and list tasks. Changes are proposed as cards and happen only on Confirm.
+- **Local notifications** for task reminders (OS-scheduled on Android and
+  restored after reboot; in-app on Linux, with missed reminders on launch).
+- Schema-constrained JSON output for capture analysis and image reading.
+- Database v2 migration (attachments, assistant actions).
+
 ### Changed
 - On-device AI is now one **Pocket Brain AI** setup with a single download
   and progress bar instead of two separately downloaded models. Model names

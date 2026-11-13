@@ -81,6 +81,11 @@ lib/
 - **Never name AI models in user-facing text.** The UI only says
   "Pocket Brain AI"; model details stay in `data/` (enforced by
   `test/data/ai_pack_test.dart`).
+- **Assistant tools never change data directly.** Write tools return a
+  proposal (`AssistantAction`) that the user confirms; only read-only tools
+  run immediately. Keep the grounding guard in `AskBrain._finalAnswer`.
+- **Media encoders load per request** (`GenerationRequest.image/audio`) and are
+  freed afterwards; don't keep them resident (4 GB phone target).
 - AI output is a *suggestion*: the user's original `Memory.content` is never
   rewritten, and AI-generated text is visually marked (`AiBadge`).
 

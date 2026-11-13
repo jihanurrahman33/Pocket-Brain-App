@@ -7,8 +7,10 @@ import '../../../core/bloc/load_state.dart';
 import '../../../core/responsive/responsive_layouts.dart';
 import '../../../core/widgets/adaptive_dialogs.dart';
 import '../../../core/widgets/feedback_widgets.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/recall.dart';
+import '../../shared/widgets/attachment_views.dart';
 import '../bloc/memory_detail_cubit.dart';
 import '../widgets/edit_memory_form.dart';
 import '../widgets/memory_detail_sections.dart';
@@ -100,6 +102,14 @@ class _MemoryDetailScaffold extends StatelessWidget {
       body: AdaptiveTwoPane(
         primary: [
           MemoryHeader(memory: memory),
+          if (memory.image case final image?) ...[
+            const Gap.lg(),
+            AttachmentImage(path: image.path),
+          ],
+          if (memory.recording case final recording?) ...[
+            const Gap.md(),
+            AttachmentAudioChip(attachment: recording),
+          ],
           if (memory.summary.isNotEmpty) AiSummaryBox(memory: memory),
           OriginalContent(memory: memory),
         ],

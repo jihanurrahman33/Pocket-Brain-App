@@ -11,6 +11,7 @@ import '../../entities/capture.dart';
 import '../../entities/memory.dart';
 import '../../entities/memory_analysis.dart';
 import '../../entities/task_item.dart';
+import '../../repositories/attachment_store.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/preferences_repository.dart';
 import '../../repositories/task_repository.dart';
@@ -23,12 +24,14 @@ final class AnalyzeCapture implements UseCase<Result<CaptureDraft>, CaptureInput
   AnalyzeCapture({
     required LinkReader linkReader,
     required MemoryAnalyzer analyzer,
+    required MediaReader mediaReader,
     required PreferencesRepository preferences,
     required FindSimilarMemories findSimilar,
     required Clock clock,
     required AppLogger logger,
   }) : _linkReader = linkReader,
        _analyzer = analyzer,
+       _mediaReader = mediaReader,
        _preferences = preferences,
        _findSimilar = findSimilar,
        _clock = clock,
@@ -36,6 +39,7 @@ final class AnalyzeCapture implements UseCase<Result<CaptureDraft>, CaptureInput
 
   final LinkReader _linkReader;
   final MemoryAnalyzer _analyzer;
+  final MediaReader _mediaReader;
   final PreferencesRepository _preferences;
   final FindSimilarMemories _findSimilar;
   final Clock _clock;
@@ -49,7 +53,13 @@ final class AnalyzeCapture implements UseCase<Result<CaptureDraft>, CaptureInput
       return const Err(ValidationFailure('Write something or paste a link first.'));
     }
     return guard(_logger, 'Analyze capture', () async {
-      final content = await _resolveContent(input);
+      final reading = await _read(input.media);
+      final content = _withReading(await _resolveContent(input), input.media, reading);
+      if (content.trim().isEmpty) {
+        throw const FailureException(
+          ValidationFailure('Nothing was found to save. Add a note to go with it.'),
+        );
+      }
       final analysis = _preferences.aiSuggestionsEnabled
           ? await _analyzer.analyze(content, now: _clock.now())
           : _plainAnalysis(content);
@@ -58,6 +68,8 @@ final class AnalyzeCapture implements UseCase<Result<CaptureDraft>, CaptureInput
         content: content,
         source: input.source,
         url: input.url?.trim(),
+        media: input.media,
+        reading: reading,
         analysis: analysis,
         similar: similar,
       );
@@ -66,6 +78,32 @@ final class AnalyzeCapture implements UseCase<Result<CaptureDraft>, CaptureInput
 
   /// For links, prepends the page title and appends readable page text so
   /// the AI can summarise the article.
+  /// What the AI reads in an image or hears in a recording; null without
+  /// media, or when the AI is not set up (the media is still saved).
+  Future<MediaReading?> _read(CapturedMedia? media) async {
+    if (media == null || !_mediaReader.isAvailable) return null;
+    return switch (media.kind) {
+      AttachmentKind.image => _mediaReader.readImage(media.path),
+      AttachmentKind.audio => _mediaReader.transcribe(media.path),
+    };
+  }
+
+  /// The memory's text: the user's own words first, then what the AI read
+  /// or heard, labelled so it is never mistaken for the user's writing.
+  static String _withReading(String typed, CapturedMedia? media, MediaReading? reading) {
+    if (media == null || reading == null || reading.isEmpty) return typed;
+    final parts = [
+      if (typed.isNotEmpty) typed,
+      if (media.kind == AttachmentKind.audio && reading.extractedText.isNotEmpty)
+        reading.extractedText,
+      if (media.kind == AttachmentKind.image && reading.description.isNotEmpty)
+        'Image: ${reading.description}',
+      if (media.kind == AttachmentKind.image && reading.extractedText.isNotEmpty)
+        'Text in image:\n${reading.extractedText}',
+    ];
+    return parts.join('\n\n');
+  }
+
   Future<String> _resolveContent(CaptureInput input) async {
     final text = input.text.trim();
     final url = input.url?.trim();
@@ -90,12 +128,14 @@ final class SaveCapture implements UseCase<Result<Memory>, SaveCaptureRequest> {
   SaveCapture({
     required MemoryRepository memories,
     required TaskRepository tasks,
+    required AttachmentStore attachments,
     required IndexMemory indexMemory,
     required IdGenerator ids,
     required Clock clock,
     required AppLogger logger,
   }) : _memories = memories,
        _tasks = tasks,
+       _attachments = attachments,
        _indexMemory = indexMemory,
        _ids = ids,
        _clock = clock,
@@ -103,6 +143,7 @@ final class SaveCapture implements UseCase<Result<Memory>, SaveCaptureRequest> {
 
   final MemoryRepository _memories;
   final TaskRepository _tasks;
+  final AttachmentStore _attachments;
   final IndexMemory _indexMemory;
   final IdGenerator _ids;
   final Clock _clock;
@@ -115,6 +156,15 @@ final class SaveCapture implements UseCase<Result<Memory>, SaveCaptureRequest> {
       guard(_logger, 'Save capture', () async {
         final now = _clock.now();
         final title = request.title.trim();
+        final media = request.media;
+        // Recordings are the app's own temporary files; images are the user's.
+        final attachment = media == null
+            ? null
+            : await _attachments.keep(
+                media.path,
+                media.kind,
+                move: media.kind == AttachmentKind.audio,
+              );
         final memory = Memory(
           id: _ids.next(),
           title: title.isEmpty ? untitled : title,
@@ -128,6 +178,7 @@ final class SaveCapture implements UseCase<Result<Memory>, SaveCaptureRequest> {
           createdAt: now,
           updatedAt: now,
           aiGenerated: request.acceptedAiAsIs,
+          attachments: [?attachment],
         );
         await _memories.save(memory);
         for (final task in request.tasks.where((t) => t.selected)) {

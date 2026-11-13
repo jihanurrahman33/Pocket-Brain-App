@@ -24,12 +24,12 @@ is no account, no server and no sync: your memories never leave the device.
 
 | | |
 |---|---|
-| **Smart capture** | Write a note, paste a link (the page is summarised) or paste from the clipboard. AI suggests a title, summary, category, tags and tasks — you review and edit everything before saving. |
-| **Ask Brain** | Ask questions like *"What was that React project idea I saved?"* Answers use **only** your memories, cite them with clickable source cards, and say *"I couldn't find that"* instead of inventing. |
+| **Smart capture** | Write a note, paste a link (the page is summarised), paste from the clipboard, **add an image or screenshot** (its text is read on-device — OCR) or **record a voice note** (transcribed on-device). AI suggests a title, summary, category, tags and tasks — you review and edit everything before saving. |
+| **Ask Brain** | Ask questions like *"What was that React project idea I saved?"* Answers use **only** your memories, cite them with clickable source cards, and say *"I couldn't find that"* instead of inventing. It can also **act**: *"Remind me to finish the book on Friday"* or *"Remember my locker code is 4312"* prepare a task or note that you **confirm** before anything changes. |
 | **Smart search** | Exact keyword search or semantic search by meaning, with filters for category, type and date. |
 | **Smart recall** | Daily digest, weekly recap, "on this day", and forgotten memories worth revisiting. |
 | **Organisation** | Collections, categories, tags, favourites, archive, related memories and duplicate detection. |
-| **Tasks** | Deadlines found in your notes become suggested tasks; confirmed tasks link back to their memory. |
+| **Tasks & reminders** | Deadlines found in your notes become suggested tasks; confirmed tasks link back to their memory. Reminders arrive as **local notifications** (scheduled by the OS on Android; on Linux while the app runs, with missed ones shown at next launch). |
 | **Privacy** | Local SQLite storage, JSON export, one-tap wipe, AI suggestions can be switched off. |
 | **Responsive** | Bottom navigation on phones, navigation rail and two-pane layouts on tablets and desktop. |
 
@@ -96,8 +96,10 @@ The domain layer is pure Dart. Layer rules are enforced by tests in
 
 - [x] Capture (notes, links, clipboard), AI review, collections, tasks
 - [x] Ask Brain with citations, semantic search, digest and recall
-- [ ] Voice capture, image/screenshot understanding, PDF import
-- [ ] System notifications for reminders
+- [x] Image/screenshot capture with on-device OCR; voice capture with transcription
+- [x] Ask Brain actions via tool calling (with user confirmation)
+- [x] Local notifications for reminders
+- [ ] PDF import, voice-note playback
 - [ ] Share-to-app on Android, biometric app lock
 - [ ] Optional encrypted backup
 
