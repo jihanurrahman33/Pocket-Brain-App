@@ -16,7 +16,9 @@ import '../../repositories/conversation_repository.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
 import '../../services/ai_services.dart';
+import '../../services/assistant_guardrails.dart';
 import '../../services/assistant_toolbox.dart';
+import '../../services/language_detector.dart';
 import '../capture/capture_usecases.dart';
 import '../search/search_usecases.dart';
 import '../tasks/task_usecases.dart';
@@ -59,12 +61,14 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     required ConversationRepository conversations,
     required RetrieveAnswerSources retrieveSources,
     required AnswerGenerator generator,
+    required QueryRewriter rewriter,
     required TaskRepository tasks,
     required IdGenerator ids,
     required Clock clock,
   }) : _conversations = conversations,
        _retrieveSources = retrieveSources,
        _generator = generator,
+       _rewriter = rewriter,
        _tasks = tasks,
        _ids = ids,
        _clock = clock;
@@ -72,6 +76,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
   final ConversationRepository _conversations;
   final RetrieveAnswerSources _retrieveSources;
   final AnswerGenerator _generator;
+  final QueryRewriter _rewriter;
   final TaskRepository _tasks;
   final IdGenerator _ids;
   final Clock _clock;
@@ -86,7 +91,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
 
   @override
   Stream<AskProgress> call(AskRequest request) async* {
-    final question = request.question.trim();
+    final question = AssistantGuardrails.prepareQuestion(request.question);
     if (question.isEmpty) return;
 
     var conversation = request.conversation;
@@ -110,10 +115,19 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       yield AskQuestionRecorded(asked);
     }
 
-    final sources = await _retrieveSources((
-      question: _retrievalText(question, request.history),
-      collectionId: conversation.collectionId,
-    ));
+    // Fixed, reliable replies for crisis messages and for questions about
+    // the assistant itself; these never go to retrieval or the model.
+    final fixedReply =
+        AssistantGuardrails.safetyReply(question) ??
+        AssistantGuardrails.conversationalReply(question);
+    if (fixedReply != null) {
+      final reply = _message(conversation.id, ChatRole.assistant, fixedReply);
+      await _conversations.saveMessage(reply);
+      yield AskAnswerCompleted(reply);
+      return;
+    }
+
+    final sources = await _findSources(question, request.history, conversation.collectionId);
     yield AskSourcesFound(sources);
 
     final toolbox = AssistantToolbox(tasks: _tasks, ids: _ids, clock: _clock);
@@ -124,9 +138,30 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       yield AskAnswerUpdated(snapshot);
     }
 
-    final answer = _finalAnswer(conversation.id, snapshot.trim(), sources, toolbox);
+    final answer = _finalAnswer(
+      conversation.id,
+      AssistantGuardrails.cleanAnswer(snapshot, sourceCount: sources.length),
+      sources,
+      toolbox,
+    );
     await _conversations.saveMessage(answer);
     yield AskAnswerCompleted(answer);
+  }
+
+  /// Retrieval, with a second try using AI-rewritten English search terms
+  /// when the question's own words match nothing (other languages, Bangla
+  /// in English letters, vague phrasing).
+  Future<List<Memory>> _findSources(
+    String question,
+    List<ChatMessage> history,
+    String? collectionId,
+  ) async {
+    final text = _retrievalText(question, history);
+    final direct = await _retrieveSources((question: text, collectionId: collectionId));
+    if (direct.isNotEmpty || !_rewriter.isAvailable) return direct;
+    final rewritten = await _rewriter.toSearchQuery(text);
+    if (rewritten == null || rewritten.trim().isEmpty) return direct;
+    return _retrieveSources((question: rewritten, collectionId: collectionId));
   }
 
   Stream<String> _answerStream(
@@ -139,7 +174,13 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       return Stream.value(sources.isEmpty ? AskReplies.notFound : AskReplies.modelMissing);
     }
     return _generator.generate(
-      AnswerPrompt(question: question, sources: sources, history: history),
+      AnswerPrompt(
+        question: question,
+        sources: sources,
+        history: history,
+        today: _clock.now(),
+        language: LanguageDetector.detect(question),
+      ),
       toolbox: toolbox,
     );
   }
@@ -163,13 +204,16 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     } else {
       reply = text;
     }
-    final cites = sources.isNotEmpty && !reply.contains(AskReplies.notFound);
+    // A partial answer that cites real memories is grounded; only the bare
+    // fixed sentence means nothing was found.
+    final nothingFound = reply.trim() == AskReplies.notFound;
+    final cites = sources.isNotEmpty && !nothingFound;
     return _message(
       conversationId,
       ChatRole.assistant,
       reply,
       sourceIds: cites ? [for (final m in sources) m.id] : const [],
-      grounded: hasEvidence && !reply.contains(AskReplies.notFound),
+      grounded: hasEvidence && !nothingFound,
       actions: proposals,
     );
   }

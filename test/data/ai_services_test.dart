@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_brain/data/services/ai/date_expression_parser.dart';
 import 'package:pocket_brain/data/services/ai/memory_analyzers.dart';
 import 'package:pocket_brain/data/services/ai/parsers/analysis_response_parser.dart';
+import 'package:pocket_brain/data/services/ai/prompts/prompts.dart';
 import 'package:pocket_brain/data/services/web/http_link_reader.dart';
+import 'package:pocket_brain/domain/entities/ask.dart';
 import 'package:pocket_brain/domain/entities/memory_analysis.dart';
 import 'package:pocket_brain/domain/services/ai_services.dart';
 
@@ -87,5 +89,17 @@ void main() {
     );
     expect(page.title, 'Make & Earn');
     expect(page.text, startsWith('Long paragraph'));
+  });
+
+  // Regression: the model turned "next Friday" into a Sunday because it was
+  // never told today's date.
+  test('tool prompts carry today and a lookup table of upcoming days', () {
+    final request = AnswerPromptBuilder.build(
+      AnswerPrompt(question: 'Remind me next Friday', sources: const [], today: testNow),
+      withTools: true,
+    );
+    expect(request.prompt, contains('TODAY: Friday 2026-11-13'));
+    expect(request.prompt, contains('Fri 2026-11-20'));
+    expect(request.prompt, contains('Sat 2026-11-14'));
   });
 }

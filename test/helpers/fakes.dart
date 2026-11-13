@@ -121,6 +121,9 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   String imageReply = '{"text": "MILK 2.49\\nBREAD 1.99", "description": "A shopping receipt."}';
   String transcriptReply = 'Remember to call the dentist on Friday.';
 
+  /// English keywords the model "writes" for a search rewrite.
+  String rewriteReply = 'book reading finish';
+
   /// Tool calls the model "makes" in the next tool chat, in order.
   List<(String, Map<String, Object?>)> toolCalls = [];
   final toolResults = <Map<String, Object?>>[];
@@ -128,6 +131,9 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   @override
   Stream<String> generate(GenerationRequest request) {
     requests.add(request);
+    if (request.systemInstruction.contains('search keywords')) {
+      return Stream.value(rewriteReply);
+    }
     if (request.image != null) return Stream.value(imageReply);
     if (request.audio != null) return Stream.value(transcriptReply);
     return Stream.fromIterable(reply);

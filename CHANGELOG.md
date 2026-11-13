@@ -17,6 +17,14 @@ uses [Semantic Versioning](https://semver.org/).
   restored after reboot; in-app on Linux, with missed reminders on launch).
 - Schema-constrained JSON output for capture analysis and image reading.
 - Database v2 migration (attachments, assistant actions).
+- **Guardrails** for Ask Brain: crisis-safe replies, prompt-injection
+  hardening, output clean-up, bounded input and answers.
+- "What can you do?", greetings and thanks get helpful replies instead of
+  "couldn't find".
+- Questions in Bangla (including English letters) find English memories via
+  AI query rewriting, and answers come back in the user's language.
+- The model is given today's date and the next two weeks, so "next Friday"
+  becomes the right date.
 
 ### Changed
 - On-device AI is now one **Pocket Brain AI** setup with a single download

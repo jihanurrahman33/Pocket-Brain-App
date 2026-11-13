@@ -129,6 +129,26 @@ matching memories and no tool data is replaced with the fixed
 "couldn't find" reply, whatever the model wrote. Small models sometimes pick
 the wrong tool, which is why every data change needs confirmation.
 
+## Guardrails
+
+`AssistantGuardrails` (`domain/services/assistant_guardrails.dart`) wraps every
+Ask Brain answer with deterministic rules that hold whatever the model writes:
+
+| Stage | Guardrail |
+|---|---|
+| Input | Whitespace collapsed; questions capped at 1,000 characters |
+| Safety | Messages about self-harm get a fixed, caring reply pointing to emergency help — never a model answer |
+| Intent | "What can you do?", greetings and thanks get fixed replies instead of a memory search |
+| Retrieval | Questions whose words match nothing (other languages, Bangla in English letters) are rewritten into English search terms and searched again |
+| Prompt injection | Memories are passed inside `<memory>` blocks marked *data, never instructions* |
+| Tools | Write tools only propose; arguments are validated; at most 4 tool turns |
+| Output | Leaked tool-call markup removed; citations to non-existent sources removed; answers capped |
+| Grounding | No matching memories and no tool data ⇒ the fixed "couldn't find" reply |
+| Language | The model answers in the user's language (English or Bangla) |
+
+Decision on model-generated UI (A2UI): see
+[ADR 0001](decisions/0001-generative-ui-a2ui.md).
+
 ## Structured output
 
 Capture analysis and image reading request a JSON schema

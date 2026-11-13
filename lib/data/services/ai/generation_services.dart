@@ -47,6 +47,31 @@ final class GemmaAnswerGenerator implements AnswerGenerator {
   }
 }
 
+/// Search keywords from Gemma, for questions whose words match nothing.
+final class GemmaQueryRewriter implements QueryRewriter {
+  const GemmaQueryRewriter(this._runtime, this._logger);
+
+  final OnDeviceAiRuntime _runtime;
+  final AppLogger _logger;
+
+  static const _maxChars = 120;
+
+  @override
+  bool get isAvailable => _runtime.isInstalled(AiModelKind.languageModel);
+
+  @override
+  Future<String?> toSearchQuery(String question) async {
+    try {
+      final raw = await _runtime.generate(SearchRewritePrompt.build(question)).join();
+      final keywords = raw.replaceAll(RegExp(r'["`*\n]'), ' ').trim();
+      return keywords.isEmpty ? null : TextUtils.truncate(keywords, _maxChars);
+    } on Object catch (e, s) {
+      _logger.error('Rewriting the search query failed', e, s);
+      return null;
+    }
+  }
+}
+
 /// Factual recap without a model.
 final class RuleBasedRecapWriter implements RecapWriter {
   const RuleBasedRecapWriter();

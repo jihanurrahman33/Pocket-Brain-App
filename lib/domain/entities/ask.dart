@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../services/language_detector.dart';
+
 import 'conversation.dart';
 import 'memory.dart';
 
@@ -125,12 +127,24 @@ final class AskAnswerCompleted extends AskProgress {
 
 /// Input to the language model for one answer.
 class AnswerPrompt extends Equatable {
-  const AnswerPrompt({required this.question, required this.sources, this.history = const []});
+  const AnswerPrompt({
+    required this.question,
+    required this.sources,
+    required this.today,
+    this.history = const [],
+    this.language = ReplyLanguage.english,
+  });
 
   final String question;
+
+  /// So the model can turn "next Friday" into a real date.
+  final DateTime today;
+
+  /// The language to answer in.
+  final ReplyLanguage language;
   final List<Memory> sources;
   final List<ChatMessage> history;
 
   @override
-  List<Object?> get props => [question, sources, history];
+  List<Object?> get props => [question, sources, today, history, language];
 }

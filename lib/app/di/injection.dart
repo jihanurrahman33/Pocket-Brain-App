@@ -153,6 +153,7 @@ void _registerServices() {
       ),
     )
     ..registerLazySingleton<AnswerGenerator>(() => GemmaAnswerGenerator(sl()))
+    ..registerLazySingleton<QueryRewriter>(() => GemmaQueryRewriter(sl(), sl()))
     ..registerLazySingleton<RecapWriter>(
       () => FallbackRecapWriter(
         primary: GemmaRecapWriter(sl()),
@@ -255,6 +256,7 @@ void _registerUseCases() {
         conversations: sl(),
         retrieveSources: sl(),
         generator: sl(),
+        rewriter: sl(),
         tasks: sl(),
         ids: sl(),
         clock: sl(),

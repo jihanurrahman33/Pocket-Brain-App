@@ -79,3 +79,13 @@ abstract interface class VoiceRecorder {
   /// Stops and discards the recording.
   Future<void> cancel();
 }
+
+/// Turns a question in any language or phrasing into English search terms,
+/// so memories are found even when the words do not match (e.g. Bangla
+/// written in English letters: "boi" → "book").
+abstract interface class QueryRewriter {
+  bool get isAvailable;
+
+  /// Search keywords, or null if rewriting failed.
+  Future<String?> toSearchQuery(String question);
+}
