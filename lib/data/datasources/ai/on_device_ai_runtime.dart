@@ -96,7 +96,12 @@ abstract interface class OnDeviceAiRuntime {
   /// Pack components in install order (most important first).
   List<AiComponent> get components;
 
+  /// The component for the selected [AiQuality] is installed.
   bool isInstalled(AiModelKind kind);
+
+  /// Some version of [kind] is installed and can run — e.g. the standard
+  /// model while the higher-quality one is still downloading.
+  bool isUsable(AiModelKind kind);
 
   bool isLoaded(AiModelKind kind);
 
@@ -118,6 +123,10 @@ abstract interface class OnDeviceAiRuntime {
   Future<void> unload(AiModelKind kind);
 
   Future<void> useBackend(ComputeBackend backend);
+
+  /// Selects the language model for [quality]. Installing it later removes
+  /// the other quality's files.
+  Future<void> useQuality(AiQuality quality);
 
   /// Streams generated text. Generations run one at a time. Media encoders
   /// are loaded only for requests that carry media and freed afterwards.

@@ -11,6 +11,7 @@ final class SharedPrefsPreferencesRepository implements PreferencesRepository {
   static const _aiSuggestionsKey = 'ai_suggestions';
   static const _backendKey = 'backend';
   static const _aiSetupKey = 'ai_setup_requested';
+  static const _aiQualityKey = 'ai_quality';
 
   @override
   bool get aiSuggestionsEnabled => _prefs.getBool(_aiSuggestionsKey) ?? true;
@@ -31,4 +32,11 @@ final class SharedPrefsPreferencesRepository implements PreferencesRepository {
 
   @override
   Future<void> setAiSetupRequested(bool requested) => _prefs.setBool(_aiSetupKey, requested);
+
+  @override
+  AiQuality get aiQuality =>
+      AiQuality.values.asNameMap()[_prefs.getString(_aiQualityKey)] ?? AiQuality.standard;
+
+  @override
+  Future<void> setAiQuality(AiQuality quality) => _prefs.setString(_aiQualityKey, quality.name);
 }

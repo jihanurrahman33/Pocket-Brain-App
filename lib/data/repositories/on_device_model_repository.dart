@@ -105,6 +105,9 @@ final class OnDeviceModelRepository implements ModelRepository {
   Future<void> useBackend(ComputeBackend backend) => _runtime.useBackend(backend);
 
   @override
+  Future<void> useQuality(AiQuality quality) => _runtime.useQuality(quality);
+
+  @override
   Future<int> storageBytes() async {
     try {
       return await _runtime.storageBytes();

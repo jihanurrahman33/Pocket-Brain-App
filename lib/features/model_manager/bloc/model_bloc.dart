@@ -20,12 +20,14 @@ class ModelBloc extends Bloc<ModelEvent, ModelState> {
     required CancelAiInstall cancelInstall,
     required UninstallAi uninstallAi,
     required ChangeComputeBackend changeBackend,
+    required ChangeAiQuality changeQuality,
     required UnloadModels unloadModels,
   }) : _getOverview = getOverview,
        _installAi = installAi,
        _cancelInstall = cancelInstall,
        _uninstallAi = uninstallAi,
        _changeBackend = changeBackend,
+       _changeQuality = changeQuality,
        _unloadModels = unloadModels,
        super(const ModelState()) {
     on<ModelStarted>(_onStarted);
@@ -34,6 +36,7 @@ class ModelBloc extends Bloc<ModelEvent, ModelState> {
     on<ModelInstallCancelled>((_, _) => _cancelInstall.run());
     on<ModelUninstallRequested>(_onUninstall);
     on<ModelBackendChanged>(_onBackendChanged);
+    on<ModelQualityChanged>(_onQualityChanged, transformer: droppable());
     on<ModelUnloadRequested>(_onUnload);
   }
 
@@ -42,6 +45,7 @@ class ModelBloc extends Bloc<ModelEvent, ModelState> {
   final CancelAiInstall _cancelInstall;
   final UninstallAi _uninstallAi;
   final ChangeComputeBackend _changeBackend;
+  final ChangeAiQuality _changeQuality;
   final UnloadModels _unloadModels;
 
   /// Loads the state and continues a setup that was interrupted last time.
@@ -57,6 +61,8 @@ class ModelBloc extends Bloc<ModelEvent, ModelState> {
       ModelState(
         pack: overview.pack,
         backend: overview.backend,
+        quality: overview.quality,
+        qualities: overview.qualities,
         storageBytes: overview.storageBytes,
         failure: failure,
       ),
@@ -85,6 +91,14 @@ class ModelBloc extends Bloc<ModelEvent, ModelState> {
   Future<void> _onBackendChanged(ModelBackendChanged event, Emitter<ModelState> emit) async {
     await _changeBackend(event.backend);
     await _refresh(emit);
+  }
+
+  /// Saves the choice and downloads the new AI if it is not on the device.
+  Future<void> _onQualityChanged(ModelQualityChanged event, Emitter<ModelState> emit) async {
+    if (state.isDownloading || event.quality == state.quality) return;
+    final result = await _changeQuality(event.quality);
+    await _refresh(emit, failure: result.failureOrNull);
+    if (result.isSuccess && !(state.pack?.isInstalled ?? true)) add(const ModelInstallRequested());
   }
 
   Future<void> _onUnload(ModelUnloadRequested event, Emitter<ModelState> emit) async {

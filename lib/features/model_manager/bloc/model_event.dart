@@ -39,6 +39,16 @@ final class ModelBackendChanged extends ModelEvent {
   List<Object?> get props => [backend];
 }
 
+/// Switches between the standard and the higher-quality AI.
+final class ModelQualityChanged extends ModelEvent {
+  const ModelQualityChanged(this.quality);
+
+  final AiQuality quality;
+
+  @override
+  List<Object?> get props => [quality];
+}
+
 /// Frees RAM used by the AI.
 final class ModelUnloadRequested extends ModelEvent {
   const ModelUnloadRequested();

@@ -97,6 +97,14 @@ Future<bool> confirmDestructive(
   required String title,
   required String message,
   String confirmLabel = 'Delete',
+}) => confirmAction(context, title: title, message: message, confirmLabel: confirmLabel);
+
+/// Asks the user to confirm an action that is costly or slow to undo.
+Future<bool> confirmAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String confirmLabel,
 }) async =>
     await showDialog<bool>(
       context: context,

@@ -12,14 +12,19 @@ import 'resumable_downloader.dart';
 /// [OnDeviceAiRuntime] backed by LiteRT-LM via `flutter_edge_ai` (Adapter).
 ///
 /// Uses Gemma 4 E2B — the lightest Gemma 4 model, designed for phones with
-/// 4–6 GB of RAM — and EmbeddingGemma 2 for semantic search. Models load
-/// lazily on first use and stay resident until unloaded.
+/// 4–6 GB of RAM — or, at [AiQuality.high] on devices with more memory,
+/// Gemma 4 E4B; and EmbeddingGemma 2 for semantic search. Models load lazily
+/// on first use and stay resident until unloaded.
+///
+/// Call [restore] once at startup, before use.
 final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   LiteRtAiRuntime({
     required ComputeBackend backend,
+    required AiQuality quality,
     required ResumableDownloader downloader,
     required Directory modelsDirectory,
   }) : _backend = backend,
+       _quality = quality,
        _downloader = downloader,
        _modelsDirectory = modelsDirectory;
 
@@ -28,7 +33,10 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   /// Where model files are downloaded (and resumed from).
   final Directory _modelsDirectory;
 
-  static final _llmVariant = LiteRtLmModels.gemma4E2bIt.generic;
+  static final _llmVariants = {
+    AiQuality.standard: LiteRtLmModels.gemma4E2bIt.generic,
+    AiQuality.high: LiteRtLmModels.gemma4E4bIt.generic,
+  };
   static final _embedderVariant = LiteRtEmbedders.embeddinggemma2Text270m.generic;
 
   /// Room for several retrieved memories plus an answer, at modest RAM cost.
@@ -41,6 +49,23 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   );
 
   ComputeBackend _backend;
+  AiQuality _quality;
+
+  /// Language model files registered with the engine (by install filename).
+  final _installedLlmFiles = <String>{};
+
+  LiteRtLmVariant get _llmVariant => _llmVariants[_quality]!;
+
+  /// Reads which language models are installed. Call once at startup.
+  Future<void> restore() async {
+    final installed = await FlutterEdgeAi.listInstalledModels();
+    _installedLlmFiles
+      ..clear()
+      ..addAll(
+        installed.where((id) => _llmVariants.values.any((v) => v.file.installFilename == id)),
+      );
+  }
+
   final _cancelled = <AiModelKind>{};
   final _llm = _LazyResource<InferenceModel>();
   final _embedder = _LazyResource<EmbeddingModel>();
@@ -56,9 +81,27 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
 
   @override
   bool isInstalled(AiModelKind kind) => switch (kind) {
+    AiModelKind.languageModel =>
+      FlutterEdgeAi.hasActiveModel() &&
+          _installedLlmFiles.contains(_llmVariant.file.installFilename),
+    AiModelKind.embedder => FlutterEdgeAi.hasActiveEmbedder(),
+  };
+
+  @override
+  bool isUsable(AiModelKind kind) => switch (kind) {
     AiModelKind.languageModel => FlutterEdgeAi.hasActiveModel(),
     AiModelKind.embedder => FlutterEdgeAi.hasActiveEmbedder(),
   };
+
+  @override
+  Future<void> useQuality(AiQuality quality) async {
+    if (quality == _quality) return;
+    _quality = quality;
+    // A partial download of the quality just left is not needed any more.
+    for (final variant in _llmVariants.values) {
+      if (variant != _llmVariant) await ResumableDownloader.deletePartial(_llmSpec(variant));
+    }
+  }
 
   @override
   bool isLoaded(AiModelKind kind) => switch (kind) {
@@ -96,6 +139,8 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
           modelType: _llmVariant.modelType,
           fileType: _llmVariant.fileType,
         ).fromFile(file.path).install();
+        _installedLlmFiles.add(_llmVariant.file.installFilename);
+        await _removeOtherLanguageModels();
       case AiModelKind.embedder:
         await FlutterEdgeAi.installEmbedder()
             .modelFromFile(file.path, filename: _embedderVariant.model.installFilename)
@@ -109,15 +154,30 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   @override
   Future<void> uninstall(AiModelKind kind) async {
     await unload(kind);
-    if (isInstalled(kind)) {
-      switch (kind) {
-        case AiModelKind.languageModel:
-          await FlutterEdgeAi.uninstallModel(_llmVariant.file.installFilename);
-        case AiModelKind.embedder:
-          await FlutterEdgeAi.uninstallEmbedder();
-      }
+    switch (kind) {
+      case AiModelKind.languageModel:
+        for (final variant in _llmVariants.values) {
+          await _uninstallLanguageModel(variant);
+        }
+      case AiModelKind.embedder:
+        if (FlutterEdgeAi.hasActiveEmbedder()) await FlutterEdgeAi.uninstallEmbedder();
+        await ResumableDownloader.deleteAll(_specFor(kind));
     }
-    await ResumableDownloader.deleteAll(_specFor(kind));
+  }
+
+  /// After a quality switch, frees the space of the model no longer used.
+  Future<void> _removeOtherLanguageModels() async {
+    // The resident instance may be the old model.
+    await unload(AiModelKind.languageModel);
+    for (final variant in _llmVariants.values) {
+      if (variant != _llmVariant) await _uninstallLanguageModel(variant);
+    }
+  }
+
+  Future<void> _uninstallLanguageModel(LiteRtLmVariant variant) async {
+    final name = variant.file.installFilename;
+    if (_installedLlmFiles.remove(name)) await FlutterEdgeAi.uninstallModel(name);
+    await ResumableDownloader.deleteAll(_llmSpec(variant));
   }
 
   ModelArtifact _artifactFor(AiModelKind kind) => switch (kind) {
@@ -125,8 +185,11 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
     AiModelKind.embedder => _embedderVariant.model,
   };
 
-  DownloadSpec _specFor(AiModelKind kind) {
-    final artifact = _artifactFor(kind);
+  DownloadSpec _specFor(AiModelKind kind) => _spec(_artifactFor(kind));
+
+  DownloadSpec _llmSpec(LiteRtLmVariant variant) => _spec(variant.file);
+
+  DownloadSpec _spec(ModelArtifact artifact) {
     return DownloadSpec(
       url: Uri.parse(artifact.url),
       target: File(p.join(_modelsDirectory.path, artifact.installFilename)),

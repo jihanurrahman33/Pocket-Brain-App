@@ -77,30 +77,6 @@ abstract final class AssistantGuardrails {
     return null;
   }
 
-  // ------------------------------------------------------- intent routing
-
-  static final _aboutTasks = RegExp(
-    r'\b(to-?dos?|to do|tasks?|deadlines?|overdue|due|reminders?|kaj|kaaj|kajgulo)\b',
-    caseSensitive: false,
-  );
-  static final _createsTask = RegExp(
-    r'\b(remind me|add|create|set (a |an )?(reminder|task)|new task|schedule|mone kor|mone koro)\b',
-    caseSensitive: false,
-  );
-
-  /// Whether the question asks about the user's existing tasks. Such
-  /// questions are answered from real task data fetched by the app, instead
-  /// of trusting a small model to decide to call the tool.
-  static bool asksAboutTasks(String question) =>
-      _aboutTasks.hasMatch(question) && !_createsTask.hasMatch(question);
-
-  /// The task filter a task question implies.
-  static String taskFilterFor(String question) => switch (question.toLowerCase()) {
-    final q when q.contains('overdue') || q.contains('late') => 'overdue',
-    final q when q.contains('done') || q.contains('completed') || q.contains('finished') => 'done',
-    _ => 'open',
-  };
-
   // --------------------------------------------------------------- output
 
   static final _citation = RegExp(r'\[(\d+)\]');

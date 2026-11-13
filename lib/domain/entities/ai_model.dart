@@ -10,6 +10,18 @@ enum ComputeBackend {
   final String label;
 }
 
+/// How capable (and how large) the on-device AI is. The default suits phones
+/// with 4–6 GB of RAM; [high] is offered only on devices with more memory.
+enum AiQuality {
+  standard('Standard', 'Fast, works on most phones'),
+  high('Higher quality', 'Better answers, for devices with 8 GB of RAM or more');
+
+  const AiQuality(this.label, this.description);
+
+  final String label;
+  final String description;
+}
+
 /// The on-device AI as the user sees it: one installable "Pocket Brain AI"
 /// pack. Which models it contains is a data-layer detail, so models can be
 /// swapped without any change to the domain or the UI.

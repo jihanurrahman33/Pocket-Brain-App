@@ -112,13 +112,6 @@ final class AssistantToolbox {
   /// so it is grounded even without matching memories.
   bool get readUserData => _readUserData;
 
-  /// Looks tasks up directly (used when the app routes a task question
-  /// itself) and records them as cards, exactly like a `list_tasks` call.
-  Future<List<TaskItem>> preloadTasks(String filter) async {
-    await _listTasks({'filter': filter});
-    return listedTasks;
-  }
-
   /// Runs one call. Never throws: problems are returned for the model to read.
   Future<Map<String, Object?>> run(String name, Map<String, Object?> args) async {
     try {

@@ -7,7 +7,7 @@ repository: https://github.com/jihanurrahman33/Pocket-Brain-App
 issue_tracker: https://github.com/jihanurrahman33/Pocket-Brain-App/issues
 publish_to: 'none' # An app, not a pub.dev package.
 
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ^3.13.7

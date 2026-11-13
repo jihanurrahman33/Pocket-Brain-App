@@ -86,24 +86,6 @@ abstract final class AnswerPromptBuilder {
         ..writeln(TextUtils.truncate(m.content, _maxSourceChars).replaceAll('</memory>', ''))
         ..writeln('</memory>');
     }
-    if (input.tasks case final tasks?) {
-      prompt.writeln("THE USER'S TASKS (already shown to them as cards):");
-      if (tasks.isEmpty) prompt.writeln('(none)');
-      for (final t in tasks) {
-        prompt.writeln(
-          '- ${t.title}'
-          '${t.dueAt == null ? '' : ' | due ${DateFormat('yyyy-MM-dd').format(t.dueAt!)}'}'
-          '${t.isOverdue(input.today) ? ' | OVERDUE' : ''}'
-          '${t.isDone ? ' | done' : ''}',
-        );
-      }
-      prompt
-        ..writeln(
-          'Reply with one short sentence about these tasks (how many, what is overdue '
-          'or due soon). Do not list them; the cards already do.',
-        )
-        ..writeln();
-    }
     final history = input.history.length > _maxHistoryTurns
         ? input.history.sublist(input.history.length - _maxHistoryTurns)
         : input.history;

@@ -58,7 +58,8 @@ two models:
 | EmbeddingGemma 2 Text 270M | 165 MB | Semantic search, related memories, duplicate detection |
 
 Gemma 4 E2B is the lightest Gemma 4 model and is designed for phones with
-4–6 GB of RAM. See [docs/ai-models.md](docs/ai-models.md) for why the models
+4–6 GB of RAM. On devices with 8 GB or more, **Settings → AI quality** offers
+a larger, higher-quality version (Gemma 4 E4B, 3.7 GB). See [docs/ai-models.md](docs/ai-models.md) for why the models
 are hidden behind one pack and for hardware notes.
 
 ## Development

@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-14
+
 ### Added
 - **Image & screenshot capture with on-device OCR**: the AI reads the text in
   an image and describes it; the image is kept with the memory.
@@ -28,13 +30,15 @@ uses [Semantic Versioning](https://semver.org/).
 - Ask Brain shows tasks as **interactive cards** (tick off, due day,
   reminder, overdue) instead of a typed list; task questions are answered
   by the app from real data — instant and always correct.
-
-### Fixed
-- "Remind me after 5 minutes" created a deadline for today and a 9:00 AM
-  reminder. Reminder times are now computed by the app from the user's own
-  words ("in 5 minutes", "after 2 hours", "5 minute pore", "at 6 pm"), and a
-  relative reminder no longer invents a deadline.
-- Date-only deadlines no longer display as "12:00 AM".
+- **Task commands in plain words**: "drink water done", "I drank water",
+  "mark the report as done", "call mum korechi" complete exactly the task
+  named — decided by tested rules, not by the model. The task appears as a
+  card that can be unticked to undo; unclear messages ask which task, and
+  intentions ("I need to…") never complete anything.
+- **Higher-quality AI option** on devices with 8 GB of RAM or more
+  (Settings → AI quality). The standard AI stays the default for 4–6 GB
+  phones. Switching downloads in the background (resumable) while the
+  current AI keeps answering, then frees the old files.
 
 ### Changed
 - On-device AI is now one **Pocket Brain AI** setup with a single download
@@ -43,6 +47,18 @@ uses [Semantic Versioning](https://semver.org/).
 - An interrupted AI setup can be resumed and only downloads what is missing.
 
 ### Fixed
+- "Remind me after 5 minutes" created a deadline for today and a 9:00 AM
+  reminder. Reminder times are now computed by the app from the user's own
+  words ("in 5 minutes", "after 2 hours", "5 minute pore", "at 6 pm"), and a
+  relative reminder no longer invents a deadline.
+- Date-only deadlines no longer display as "12:00 AM".
+- "Check the drink water todo, I'm done" listed a completed task instead
+  of completing the open one; "drink water done" answered "couldn't find
+  that in your saved memories".
+- Task replies no longer show unrelated memories as sources.
+- Searches with AI-rewritten keywords match words exactly, so they no
+  longer pull in loosely related notes.
+- The Linux window title is "Pocket Brain".
 - AI downloads restarted from 0% after any interruption (restart, crash,
   lost connection). Downloads now resume from the bytes on disk via HTTP
   range requests, are verified by SHA-256, show progress from where they

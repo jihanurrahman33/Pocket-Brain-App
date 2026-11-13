@@ -42,15 +42,19 @@ Future<void> main() async {
     logger: logger,
   );
   await reminders.initialize();
+  final savedPreferences = SharedPrefsPreferencesRepository(preferences);
+  final aiRuntime = LiteRtAiRuntime(
+    backend: savedPreferences.computeBackend,
+    quality: savedPreferences.aiQuality,
+    downloader: ResumableDownloader(httpClient, logger),
+    modelsDirectory: Directory(p.join(appSupport.path, 'ai_models')),
+  );
+  await aiRuntime.restore();
   await configureDependencies(
     Infrastructure(
       database: await AppDatabase.open(),
       preferences: preferences,
-      aiRuntime: LiteRtAiRuntime(
-        backend: SharedPrefsPreferencesRepository(preferences).computeBackend,
-        downloader: ResumableDownloader(httpClient, logger),
-        modelsDirectory: Directory(p.join(appSupport.path, 'ai_models')),
-      ),
+      aiRuntime: aiRuntime,
       httpClient: httpClient,
       attachmentsDirectory: Directory(p.join(appSupport.path, 'attachments')),
       reminderScheduler: reminders,

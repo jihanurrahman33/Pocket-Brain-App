@@ -199,6 +199,11 @@ class ResumableDownloader {
       (await sha256.bind(File(path).openRead()).first).toString();
 
   /// Removes both the finished file and any partial download.
+  /// Removes an unfinished download, keeping a complete file.
+  static Future<void> deletePartial(DownloadSpec spec) async {
+    if (spec.partial.existsSync()) await spec.partial.delete();
+  }
+
   static Future<void> deleteAll(DownloadSpec spec) async {
     for (final file in [spec.target, spec.partial]) {
       if (file.existsSync()) await file.delete();

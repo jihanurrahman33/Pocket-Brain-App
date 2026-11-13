@@ -16,4 +16,8 @@ abstract interface class PreferencesRepository {
   bool get aiSetupRequested;
 
   Future<void> setAiSetupRequested(bool requested);
+
+  AiQuality get aiQuality;
+
+  Future<void> setAiQuality(AiQuality quality);
 }

@@ -22,6 +22,12 @@ abstract interface class ModelRepository {
 
   Future<void> useBackend(ComputeBackend backend);
 
+  /// Selects which AI the pack contains. If it is not on the device yet,
+  /// [status] reports the pack as not installed and [install] downloads it;
+  /// the previous AI keeps working until the new one is ready, then it is
+  /// removed.
+  Future<void> useQuality(AiQuality quality);
+
   /// Bytes used by AI files on disk.
   Future<int> storageBytes();
 }

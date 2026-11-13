@@ -22,6 +22,7 @@ import '../../data/repositories/sqlite_task_repository.dart';
 import '../../data/services/ai/generation_services.dart';
 import '../../data/services/ai/media_reader.dart';
 import '../../data/services/ai/memory_analyzers.dart';
+import '../../data/services/system/proc_meminfo_device_memory.dart';
 import '../../data/services/web/http_link_reader.dart';
 import '../../domain/entities/search.dart';
 import '../../domain/repositories/attachment_store.dart';
@@ -34,8 +35,10 @@ import '../../domain/repositories/preferences_repository.dart';
 import '../../domain/repositories/search_history_repository.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../../domain/services/ai_services.dart';
+import '../../domain/services/device_memory.dart';
 import '../../domain/services/relevance_scorer.dart';
 import '../../domain/services/reminder_scheduler.dart';
+import '../../domain/usecases/ask/answer_task_intent.dart';
 import '../../domain/usecases/ask/ask_usecases.dart';
 import '../../domain/usecases/capture/capture_usecases.dart';
 import '../../domain/usecases/capture/voice_usecases.dart';
@@ -73,6 +76,7 @@ class Infrastructure {
     required this.voiceRecorder,
     required this.reminderScheduler,
     this.exporter = const JsonFileExportRepository(),
+    this.deviceMemory = const ProcMeminfoDeviceMemory(),
     this.logger = const DebugAppLogger(),
     this.clock = const SystemClock(),
   });
@@ -87,6 +91,7 @@ class Infrastructure {
   final VoiceRecorder voiceRecorder;
   final ReminderScheduler reminderScheduler;
   final DataExportRepository exporter;
+  final DeviceMemory deviceMemory;
   final AppLogger logger;
   final Clock clock;
 }
@@ -134,11 +139,12 @@ void _registerRepositories(Infrastructure infra) {
     ..registerLazySingleton<AttachmentStore>(
       () => FileAttachmentStore(infra.attachmentsDirectory, sl()),
     )
-    ..registerSingleton<VoiceRecorder>(infra.voiceRecorder);
+    ..registerSingleton<VoiceRecorder>(infra.voiceRecorder)
+    ..registerSingleton<DeviceMemory>(infra.deviceMemory);
 }
 
 void _registerServices() {
-  bool languageModelInstalled() => sl<OnDeviceAiRuntime>().isInstalled(AiModelKind.languageModel);
+  bool languageModelInstalled() => sl<OnDeviceAiRuntime>().isUsable(AiModelKind.languageModel);
 
   sl
     ..registerLazySingleton<TextEmbedder>(() => EmbeddingGemmaTextEmbedder(sl(), sl()))
@@ -258,6 +264,7 @@ void _registerUseCases() {
         generator: sl(),
         rewriter: sl(),
         tasks: sl(),
+        answerTaskIntent: AnswerTaskIntent(sl(), sl()),
         ids: sl(),
         clock: sl(),
       ),
@@ -292,7 +299,9 @@ void _registerUseCases() {
     ..registerLazySingleton(() => GetDigest(tasks: sl(), recall: sl(), clock: sl(), logger: sl()))
     ..registerLazySingleton(() => WriteWeeklyRecap(sl(), sl()))
     // Models
-    ..registerLazySingleton(() => GetAiOverview(sl(), sl()))
+    ..registerLazySingleton(() => GetAvailableAiQualities(sl()))
+    ..registerLazySingleton(() => GetAiOverview(sl(), sl(), sl()))
+    ..registerLazySingleton(() => ChangeAiQuality(sl(), sl(), sl()))
     ..registerLazySingleton(() => InstallAi(sl(), sl(), sl()))
     ..registerLazySingleton(() => CancelAiInstall(sl(), sl()))
     ..registerLazySingleton(() => UninstallAi(sl(), sl()))
@@ -336,6 +345,7 @@ void _registerPresentation() {
         cancelInstall: sl(),
         uninstallAi: sl(),
         changeBackend: sl(),
+        changeQuality: sl(),
         unloadModels: sl(),
       ),
     )

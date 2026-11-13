@@ -38,6 +38,10 @@ class _ModelSettings extends StatelessWidget {
         children: [
           const SectionHeader('On-device AI'),
           const AiPackCard(),
+          if (state.qualities.length > 1) ...[
+            const SectionHeader('AI quality'),
+            _QualityCard(state: state),
+          ],
           const SectionHeader('Advanced'),
           Card(
             child: Column(
@@ -81,6 +85,50 @@ class _ModelSettings extends StatelessWidget {
         ],
       );
     },
+  );
+}
+
+/// Shown only on devices with enough memory for the larger AI.
+class _QualityCard extends StatelessWidget {
+  const _QualityCard({required this.state});
+
+  final ModelState state;
+
+  Future<void> _choose(BuildContext context, AiQuality quality) async {
+    final bloc = context.read<ModelBloc>();
+    final confirmed = await confirmAction(
+      context,
+      title: 'Switch to ${quality.label.toLowerCase()}?',
+      message: quality == AiQuality.high
+          ? 'Pocket Brain AI will download a larger version that gives better answers but '
+                'uses more memory and storage. The current one keeps working until it is '
+                'ready, and is then removed.'
+          : 'Pocket Brain AI will download the standard version, which is faster and '
+                'smaller. The current one keeps working until it is ready.',
+      confirmLabel: 'Download',
+    );
+    if (confirmed) bloc.add(ModelQualityChanged(quality));
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: RadioGroup<AiQuality>(
+      groupValue: state.quality,
+      onChanged: (q) {
+        if (q != null && !state.isDownloading) _choose(context, q);
+      },
+      child: Column(
+        children: [
+          for (final q in state.qualities)
+            RadioListTile<AiQuality>(
+              value: q,
+              enabled: !state.isDownloading,
+              title: Text(q.label),
+              subtitle: Text(q.description),
+            ),
+        ],
+      ),
+    ),
   );
 }
 

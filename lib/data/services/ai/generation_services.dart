@@ -17,7 +17,7 @@ final class GemmaAnswerGenerator implements AnswerGenerator {
   final OnDeviceAiRuntime _runtime;
 
   @override
-  bool get isAvailable => _runtime.isInstalled(AiModelKind.languageModel);
+  bool get isAvailable => _runtime.isUsable(AiModelKind.languageModel);
 
   @override
   Stream<String> generate(AnswerPrompt prompt, {AssistantToolbox? toolbox}) {
@@ -57,7 +57,7 @@ final class GemmaQueryRewriter implements QueryRewriter {
   static const _maxChars = 120;
 
   @override
-  bool get isAvailable => _runtime.isInstalled(AiModelKind.languageModel);
+  bool get isAvailable => _runtime.isUsable(AiModelKind.languageModel);
 
   @override
   Future<String?> toSearchQuery(String question) async {
@@ -139,7 +139,7 @@ final class EmbeddingGemmaTextEmbedder implements TextEmbedder {
   static const _maxInputChars = 2000;
 
   @override
-  bool get isAvailable => _runtime.isInstalled(AiModelKind.embedder);
+  bool get isAvailable => _runtime.isUsable(AiModelKind.embedder);
 
   @override
   Future<Float32List?> embed(String text, EmbeddingPurpose purpose) async {

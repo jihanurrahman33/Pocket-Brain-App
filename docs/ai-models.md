@@ -49,12 +49,31 @@ user-facing code ever names a model.
 | Model | File | Size | Role |
 |---|---|---|---|
 | **Gemma 4 E2B** (`LiteRtLmModels.gemma4E2bIt.generic`) | `gemma-4-E2B-it.litertlm` | 2.59 GB | Capture analysis, Ask Brain answers, weekly recap |
+| **Gemma 4 E4B** (`LiteRtLmModels.gemma4E4bIt.generic`), optional | `gemma-4-E4B-it.litertlm` | 3.66 GB | Same role at *Higher quality*, only on 8 GB+ devices |
 | **EmbeddingGemma 2 Text 270M** (`LiteRtEmbedders.embeddinggemma2Text270m.generic`) | `embeddinggemma-2-text-270m.litertlm` | 165 MB | Semantic search, related memories, duplicate detection |
 
 Gemma 4 E2B is the lightest Gemma 4 model ("E2B" ≈ 2 billion effective
 parameters) and targets phones with 4–6 GB of RAM. The generic bundle runs on
 CPU everywhere and on GPU (Vulkan on Linux, OpenCL on Android) where
 available. The context window is set to 4096 tokens.
+
+### Quality tiers
+
+`AiQuality.standard` (E2B) is the default everywhere. `GetAvailableAiQualities`
+reads total RAM through the `DeviceMemory` port (`/proc/meminfo` on Linux and
+Android) and offers `AiQuality.high` (E4B) only from 7 GiB — what "8 GB"
+devices report. Larger models (Gemma 3n E4B at 4.9 GB, 7B+ models) do not
+fit beside the OS on 4–6 GB phones and are deliberately not offered.
+
+Switching (`ChangeAiQuality`) saves the preference and selects the other
+file; the pack then reports *not installed* and the normal resumable install
+downloads it. Until it is registered, `OnDeviceAiRuntime.isUsable` keeps the
+previous model answering; afterwards the old file is uninstalled.
+
+Most reliability comes from **not asking the model to decide** things rules
+can decide: task completion and task questions (`IntentRouter`,
+`AnswerTaskIntent`), reminder times (`ReminderTimeParser`), task summaries
+(`TaskSummary`) and grounding are all deterministic and tested.
 
 ### Hardware guidance
 
@@ -139,6 +158,7 @@ Ask Brain answer with deterministic rules that hold whatever the model writes:
 | Input | Whitespace collapsed; questions capped at 1,000 characters |
 | Safety | Messages about self-harm get a fixed, caring reply pointing to emergency help — never a model answer |
 | Intent | "What can you do?", greetings and thanks get fixed replies instead of a memory search |
+| Task routing | `IntentRouter` classifies task commands ("drink water done", "I drank water") and task questions by tested rules; `AnswerTaskIntent` completes the one matching open task or asks which, from real data, with no model call and no memory sources |
 | Retrieval | Questions whose words match nothing (other languages, Bangla in English letters) are rewritten into English search terms and searched again |
 | Prompt injection | Memories are passed inside `<memory>` blocks marked *data, never instructions* |
 | Tools | Write tools only propose; arguments are validated; at most 4 tool turns |

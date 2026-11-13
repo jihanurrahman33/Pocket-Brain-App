@@ -10,6 +10,7 @@ import 'package:pocket_brain/domain/entities/memory.dart';
 import 'package:pocket_brain/domain/entities/task_item.dart';
 import 'package:pocket_brain/domain/repositories/data_export_repository.dart';
 import 'package:pocket_brain/domain/services/ai_services.dart';
+import 'package:pocket_brain/domain/services/device_memory.dart';
 import 'package:pocket_brain/domain/services/reminder_scheduler.dart';
 
 /// A fixed point in time for deterministic tests.
@@ -71,6 +72,25 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   @override
   bool isInstalled(AiModelKind kind) => installed.contains(kind);
 
+  /// Components installed for a quality other than the selected one.
+  Set<AiModelKind> usableOnly = {};
+
+  AiQuality quality = AiQuality.standard;
+
+  @override
+  bool isUsable(AiModelKind kind) => installed.contains(kind) || usableOnly.contains(kind);
+
+  @override
+  Future<void> useQuality(AiQuality quality) async {
+    if (quality == this.quality) return;
+    this.quality = quality;
+    if (installed.contains(AiModelKind.languageModel)) {
+      // The old model stays usable until the new one is installed.
+      installed = installed.where((k) => k != AiModelKind.languageModel).toSet();
+      usableOnly = {...usableOnly, AiModelKind.languageModel};
+    }
+  }
+
   @override
   bool isLoaded(AiModelKind kind) => false;
 
@@ -100,6 +120,7 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
     }
     partialBytes.remove(kind);
     installed = {...installed, kind};
+    usableOnly = usableOnly.where((k) => k != kind).toSet();
   }
 
   @override
@@ -252,4 +273,13 @@ Memory memoryFixture({
     updatedAt: at,
     collectionId: collectionId,
   );
+}
+
+final class FakeDeviceMemory implements DeviceMemory {
+  const FakeDeviceMemory(this.bytes);
+
+  final int? bytes;
+
+  @override
+  Future<int?> totalBytes() async => bytes;
 }

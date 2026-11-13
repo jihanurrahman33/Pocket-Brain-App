@@ -16,7 +16,7 @@ final class GemmaMediaReader implements MediaReader {
   final OnDeviceAiRuntime _runtime;
 
   @override
-  bool get isAvailable => _runtime.isInstalled(AiModelKind.languageModel);
+  bool get isAvailable => _runtime.isUsable(AiModelKind.languageModel);
 
   @override
   Future<MediaReading> readImage(String path) async {

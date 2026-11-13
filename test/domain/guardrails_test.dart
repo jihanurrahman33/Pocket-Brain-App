@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_brain/app/di/injection.dart';
+import 'package:pocket_brain/core/usecase/usecase.dart';
 import 'package:pocket_brain/data/datasources/ai/on_device_ai_runtime.dart';
 import 'package:pocket_brain/domain/entities/ask.dart';
 import 'package:pocket_brain/domain/entities/task_item.dart';
@@ -74,27 +75,6 @@ void main() {
         AssistantGuardrails.maxQuestionChars,
       );
     });
-  });
-
-  test('routes questions about existing tasks, not requests to create one', () {
-    for (final q in [
-      'what todos i have now?',
-      "What's overdue?",
-      'show my tasks',
-      'any deadlines this week?',
-      'amar ki kaj ache?',
-    ]) {
-      expect(AssistantGuardrails.asksAboutTasks(q), isTrue, reason: q);
-    }
-    for (final q in [
-      'remind me to drink water',
-      'add a task to call mum',
-      'What was that React idea?',
-    ]) {
-      expect(AssistantGuardrails.asksAboutTasks(q), isFalse, reason: q);
-    }
-    expect(AssistantGuardrails.taskFilterFor("what's overdue?"), 'overdue');
-    expect(AssistantGuardrails.taskFilterFor('what todos do I have'), 'open');
   });
 
   test('detects English, Bangla script and Banglish', () {
@@ -182,6 +162,75 @@ void main() {
         isEmpty,
         reason: 'no answer generation for task questions',
       );
+    });
+
+    // Regression (real use): "drink water done" got "couldn't find that in
+    // your saved memories", and a done task was listed instead.
+    group('completing tasks by message', () {
+      Future<List<AskProgress>> say(String q) => sl<AskBrain>()(AskRequest(question: q)).toList();
+
+      test('"drink water done" marks exactly that task done', () async {
+        final water = (await sl<AddTask>()(
+          NewTask(title: 'drink water', reminderAt: DateTime(2026, 11, 14, 18)),
+        )).valueOrNull!;
+        await sl<AddTask>()(const NewTask(title: 'Important meeting with Google'));
+        expect(testReminders.scheduled, contains(water.id));
+
+        final events = await say('drink water done');
+        final answer = events.whereType<AskAnswerCompleted>().single.message;
+        expect(answer.text, startsWith('Marked "drink water" as done'));
+        expect(answer.sourceIds, isEmpty, reason: 'no memory cards on task replies');
+        expect(answer.taskIds, [water.id]);
+        expect(events.whereType<AskSourcesFound>(), isEmpty);
+        final board = (await sl<GetTaskBoard>()(const NoParams())).valueOrNull!;
+        expect(board.completed.single.id, water.id);
+        expect(testReminders.scheduled, isNot(contains(water.id)), reason: 'reminder cancelled');
+        expect(ai.requests, isEmpty, reason: 'decided without the model');
+      });
+
+      test('"I drank water" and Banglish completion work too', () async {
+        await sl<AddTask>()(const NewTask(title: 'drink water'));
+        expect(
+          (await say('I drank water')).whereType<AskAnswerCompleted>().single.message.text,
+          startsWith('Marked'),
+        );
+        await sl<AddTask>()(const NewTask(title: 'call mum'));
+        expect(
+          (await say('ami mum ke call korechi'))
+              .whereType<AskAnswerCompleted>()
+              .single
+              .message
+              .text,
+          contains('সম্পন্ন'),
+        );
+      });
+
+      test('an unknown task lists the open ones instead of guessing', () async {
+        await sl<AddTask>()(const NewTask(title: 'drink water'));
+        final events = await say('the dentist task is done');
+        final answer = events.whereType<AskAnswerCompleted>().single.message;
+        expect(answer.text, startsWith("I couldn't find an open task"));
+        expect(events.whereType<AskTasksFound>().single.tasks.single.title, 'drink water');
+        final board = (await sl<GetTaskBoard>()(const NoParams())).valueOrNull!;
+        expect(board.completed, isEmpty);
+      });
+
+      test('two equally likely tasks ask which one', () async {
+        await sl<AddTask>()(const NewTask(title: 'pay rent'));
+        await sl<AddTask>()(const NewTask(title: 'pay rent for garage'));
+        await sl<AddTask>()(const NewTask(title: 'rent pay'));
+        final events = await say('pay rent done');
+        final answer = events.whereType<AskAnswerCompleted>().single.message;
+        expect(answer.text, startsWith('Which one'));
+        expect(events.whereType<AskTasksFound>().single.tasks, hasLength(2));
+      });
+
+      test('intentions never complete a task', () async {
+        await sl<AddTask>()(const NewTask(title: 'drink water'));
+        await say('I need to drink water later');
+        final board = (await sl<GetTaskBoard>()(const NoParams())).valueOrNull!;
+        expect(board.completed, isEmpty);
+      });
     });
 
     test('task summaries are computed correctly in English and Bangla', () {

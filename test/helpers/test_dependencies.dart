@@ -16,7 +16,10 @@ late Directory testFilesDirectory;
 
 /// Wires the real app graph with an in-memory database, a fake AI runtime
 /// and no network — the same composition root the app uses.
-Future<FakeAiRuntime> configureTestDependencies({FakeAiRuntime? runtime}) async {
+Future<FakeAiRuntime> configureTestDependencies({
+  FakeAiRuntime? runtime,
+  int deviceMemoryBytes = 4 * 1024 * 1024 * 1024,
+}) async {
   SharedPreferences.setMockInitialValues({});
   final ai = runtime ?? FakeAiRuntime();
   testFilesDirectory = Directory.systemTemp.createTempSync('pb_test_files_');
@@ -35,6 +38,7 @@ Future<FakeAiRuntime> configureTestDependencies({FakeAiRuntime? runtime}) async 
       voiceRecorder: testRecorder,
       reminderScheduler: testReminders,
       exporter: InMemoryExporter(),
+      deviceMemory: FakeDeviceMemory(deviceMemoryBytes),
       logger: const SilentLogger(),
       clock: FixedClock(),
     ),

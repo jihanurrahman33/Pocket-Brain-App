@@ -19,13 +19,16 @@ import '../../repositories/task_repository.dart';
 import '../../services/ai_services.dart';
 import '../../services/assistant_guardrails.dart';
 import '../../services/assistant_toolbox.dart';
+import '../../services/intent_router.dart';
 import '../../services/language_detector.dart';
-import '../../services/task_summary.dart';
 import '../capture/capture_usecases.dart';
 import '../search/search_usecases.dart';
 import '../tasks/task_usecases.dart';
+import 'answer_task_intent.dart';
 
-typedef SourceQuery = ({String question, String? collectionId});
+/// [mode] is keyword for AI-rewritten search terms: they are exact English
+/// keywords, and meaning-based matching on them pulled in unrelated notes.
+typedef SourceQuery = ({String question, String? collectionId, SearchMode mode});
 
 /// Picks the memories an answer may use. Only memories above a relevance
 /// threshold qualify, so weak matches never become "sources".
@@ -42,6 +45,7 @@ final class RetrieveAnswerSources implements UseCase<List<Memory>, SourceQuery> 
     final result = await _search(
       SearchQuery(
         text: query.question,
+        mode: query.mode,
         filters: SearchFilters(collectionId: query.collectionId),
         limit: maxSources,
       ),
@@ -65,6 +69,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     required AnswerGenerator generator,
     required QueryRewriter rewriter,
     required TaskRepository tasks,
+    required AnswerTaskIntent answerTaskIntent,
     required IdGenerator ids,
     required Clock clock,
   }) : _conversations = conversations,
@@ -72,6 +77,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
        _generator = generator,
        _rewriter = rewriter,
        _tasks = tasks,
+       _answerTaskIntent = answerTaskIntent,
        _ids = ids,
        _clock = clock;
 
@@ -80,6 +86,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
   final AnswerGenerator _generator;
   final QueryRewriter _rewriter;
   final TaskRepository _tasks;
+  final AnswerTaskIntent _answerTaskIntent;
   final IdGenerator _ids;
   final Clock _clock;
 
@@ -129,22 +136,34 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       return;
     }
 
+    // Deterministic routing: task commands and questions are answered from
+    // real task data by the app, never by the model, and cite no memories.
+    final allTasks = await _tasks.getAll();
+    final intent = IntentRouter.classify(question, allTasks);
+    if (intent is! MemoryQuestionIntent) {
+      final handled = await _answerTaskIntent((
+        intent: intent,
+        allTasks: allTasks,
+        language: LanguageDetector.detect(question),
+      ));
+      if (handled.tasks.isNotEmpty) yield AskTasksFound(handled.tasks);
+      final reply = _message(
+        conversation.id,
+        ChatRole.assistant,
+        handled.text,
+        taskIds: [for (final t in handled.tasks) t.id],
+      );
+      await _conversations.saveMessage(reply);
+      yield AskAnswerCompleted(reply);
+      return;
+    }
+
     final sources = await _findSources(question, request.history, conversation.collectionId);
     yield AskSourcesFound(sources);
 
     final toolbox = AssistantToolbox(tasks: _tasks, ids: _ids, clock: _clock, question: question);
-    // Deterministic routing: task questions get real task data up front.
-    final preloaded = AssistantGuardrails.asksAboutTasks(question)
-        ? await toolbox.preloadTasks(AssistantGuardrails.taskFilterFor(question))
-        : null;
     var snapshot = '';
-    await for (final text in _answerStream(
-      question,
-      sources,
-      request.history,
-      toolbox,
-      preloaded,
-    )) {
+    await for (final text in _answerStream(question, sources, request.history, toolbox)) {
       if (request.isStopRequested()) break;
       snapshot = text;
       yield AskAnswerUpdated(snapshot);
@@ -171,11 +190,19 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     String? collectionId,
   ) async {
     final text = _retrievalText(question, history);
-    final direct = await _retrieveSources((question: text, collectionId: collectionId));
+    final direct = await _retrieveSources((
+      question: text,
+      collectionId: collectionId,
+      mode: SearchMode.semantic,
+    ));
     if (direct.isNotEmpty || !_rewriter.isAvailable) return direct;
     final rewritten = await _rewriter.toSearchQuery(text);
     if (rewritten == null || rewritten.trim().isEmpty) return direct;
-    return _retrieveSources((question: rewritten, collectionId: collectionId));
+    return _retrieveSources((
+      question: rewritten,
+      collectionId: collectionId,
+      mode: SearchMode.keyword,
+    ));
   }
 
   Stream<String> _answerStream(
@@ -183,19 +210,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     List<Memory> sources,
     List<ChatMessage> history,
     AssistantToolbox toolbox,
-    List<TaskItem>? preloadedTasks,
   ) {
-    // Task questions are answered by the app: the cards show the tasks and
-    // the summary is computed, so it is instant and always correct.
-    if (preloadedTasks != null) {
-      return Stream.value(
-        TaskSummary.describe(
-          preloadedTasks,
-          now: _clock.now(),
-          language: LanguageDetector.detect(question),
-        ),
-      );
-    }
     if (!_generator.isAvailable) {
       return Stream.value(sources.isEmpty ? AskReplies.notFound : AskReplies.modelMissing);
     }
@@ -206,7 +221,6 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
         history: history,
         today: _clock.now(),
         language: LanguageDetector.detect(question),
-        tasks: preloadedTasks,
       ),
       toolbox: toolbox,
     );
