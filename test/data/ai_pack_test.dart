@@ -5,6 +5,7 @@ import 'package:pocket_brain/app/di/injection.dart';
 import 'package:pocket_brain/core/error/failure.dart';
 import 'package:pocket_brain/data/datasources/ai/on_device_ai_runtime.dart';
 import 'package:pocket_brain/data/repositories/on_device_model_repository.dart';
+import 'package:pocket_brain/domain/repositories/preferences_repository.dart';
 import 'package:pocket_brain/features/model_manager/bloc/model_bloc.dart';
 
 import '../helpers/app_harness.dart';
@@ -41,13 +42,27 @@ void main() {
       final failed = await repo.install(onProgress: (_) {});
       expect(failed.failureOrNull, isA<ModelFailure>());
       expect(repo.status().isPartiallyInstalled, isTrue);
-      expect(repo.status().remainingBytes, FakeAiRuntime.embedderBytes);
+      // The language model is done and part of the embedder is on disk too.
+      expect(repo.status().remainingBytes, lessThan(FakeAiRuntime.embedderBytes));
 
       runtime
         ..failOn = null
         ..installOrder.clear();
       expect((await repo.install(onProgress: (_) {})).isSuccess, isTrue);
       expect(runtime.installOrder, [AiModelKind.embedder]);
+    });
+
+    // The reported bug: progress restarted from 0 after an interruption.
+    test('progress continues from the bytes already on disk', () async {
+      final runtime = FakeAiRuntime()..partialBytes[AiModelKind.languageModel] = 1482;
+      final repo = OnDeviceModelRepository(runtime, const SilentLogger());
+      expect(repo.status().isPartiallyInstalled, isTrue);
+      expect(repo.status().downloadedFraction, closeTo(1482 / total, 1e-9));
+
+      final progress = <double>[];
+      await repo.install(onProgress: progress.add);
+      expect(progress.first, closeTo(1482 / total, 1e-9));
+      expect(progress.every((p) => p >= 1482 / total - 1e-9), isTrue);
     });
 
     test('cancel stops the whole download', () async {
@@ -68,7 +83,7 @@ void main() {
 
   test('ModelBloc shows one download from start to ready', () async {
     await configureTestDependencies();
-    final bloc = sl<ModelBloc>()..add(const ModelRefreshRequested());
+    final bloc = sl<ModelBloc>()..add(const ModelStarted());
     await untilState(bloc, (s) => s.pack != null);
     expect(bloc.state.isReady, isFalse);
 
@@ -80,6 +95,30 @@ void main() {
 
     expect(seen.where((s) => s.isDownloading), isNotEmpty);
     expect(bloc.state.failure, isNull);
+    await bloc.close();
+  });
+
+  // The reported bug: after a restart the setup did not continue by itself.
+  test('an interrupted setup resumes automatically on the next launch', () async {
+    final runtime = FakeAiRuntime()..partialBytes[AiModelKind.languageModel] = 1300;
+    await configureTestDependencies(runtime: runtime);
+    await sl<PreferencesRepository>().setAiSetupRequested(true);
+
+    final bloc = sl<ModelBloc>()..add(const ModelStarted());
+    await untilState(bloc, (s) => s.isReady && !s.isDownloading);
+    expect(runtime.installOrder.first, AiModelKind.languageModel);
+    expect(sl<PreferencesRepository>().aiSetupRequested, isFalse);
+    await bloc.close();
+  });
+
+  test('a cancelled setup does not resume on its own, but keeps its bytes', () async {
+    final runtime = FakeAiRuntime()..partialBytes[AiModelKind.languageModel] = 1300;
+    await configureTestDependencies(runtime: runtime);
+
+    final bloc = sl<ModelBloc>()..add(const ModelStarted());
+    await untilState(bloc, (s) => s.pack != null);
+    expect(runtime.installOrder, isEmpty);
+    expect(bloc.state.pack!.isPartiallyInstalled, isTrue);
     await bloc.close();
   });
 

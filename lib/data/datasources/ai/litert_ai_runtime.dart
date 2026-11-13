@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:flutter_edge_ai/flutter_edge_ai.dart' hide DownloadCancelledException;
 import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../domain/entities/ai_model.dart';
 import 'on_device_ai_runtime.dart';
+import 'resumable_downloader.dart';
 
 /// [OnDeviceAiRuntime] backed by LiteRT-LM via `flutter_edge_ai` (Adapter).
 ///
@@ -12,7 +15,18 @@ import 'on_device_ai_runtime.dart';
 /// 4–6 GB of RAM — and EmbeddingGemma 2 for semantic search. Models load
 /// lazily on first use and stay resident until unloaded.
 final class LiteRtAiRuntime implements OnDeviceAiRuntime {
-  LiteRtAiRuntime({required ComputeBackend backend}) : _backend = backend;
+  LiteRtAiRuntime({
+    required ComputeBackend backend,
+    required ResumableDownloader downloader,
+    required Directory modelsDirectory,
+  }) : _backend = backend,
+       _downloader = downloader,
+       _modelsDirectory = modelsDirectory;
+
+  final ResumableDownloader _downloader;
+
+  /// Where model files are downloaded (and resumed from).
+  final Directory _modelsDirectory;
 
   static final _llmVariant = LiteRtLmModels.gemma4E2bIt.generic;
   static final _embedderVariant = LiteRtEmbedders.embeddinggemma2Text270m.generic;
@@ -27,7 +41,7 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   );
 
   ComputeBackend _backend;
-  final _cancelTokens = <AiModelKind, CancelToken>{};
+  final _cancelled = <AiModelKind>{};
   final _llm = _LazyResource<InferenceModel>();
   final _embedder = _LazyResource<EmbeddingModel>();
 
@@ -53,43 +67,72 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   };
 
   @override
-  Future<void> install(AiModelKind kind, {required void Function(int percent) onProgress}) async {
-    final token = CancelToken();
-    _cancelTokens[kind] = token;
+  int downloadedBytes(AiModelKind kind) => isInstalled(kind)
+      ? _artifactFor(kind).sizeBytes
+      : ResumableDownloader.bytesOnDisk(_specFor(kind));
+
+  @override
+  Future<void> install(
+    AiModelKind kind, {
+    required void Function(int bytesOnDisk) onProgress,
+  }) async {
+    _cancelled.remove(kind);
+    final File file;
     try {
-      switch (kind) {
-        case AiModelKind.languageModel:
-          await FlutterEdgeAi.installModelFromCatalog(_llmVariant)
-              .withProgress(onProgress)
-              .withCancelToken(token)
-              .install();
-        case AiModelKind.embedder:
-          await FlutterEdgeAi.installEmbedder()
-              .fromCatalog(_embedderVariant)
-              .withProgress(onProgress)
-              .withCancelToken(token)
-              .install();
-      }
-    } on Object {
-      if (token.isCancelled) throw const InstallCancelledException();
-      rethrow;
+      file = await _downloader.download(
+        _specFor(kind),
+        onProgress: onProgress,
+        isCancelled: () => _cancelled.contains(kind),
+      );
+    } on DownloadCancelledException {
+      throw const InstallCancelledException();
     } finally {
-      _cancelTokens.remove(kind);
+      _cancelled.remove(kind);
+    }
+    // The verified file is registered in place (no copy).
+    switch (kind) {
+      case AiModelKind.languageModel:
+        await FlutterEdgeAi.installModel(
+          modelType: _llmVariant.modelType,
+          fileType: _llmVariant.fileType,
+        ).fromFile(file.path).install();
+      case AiModelKind.embedder:
+        await FlutterEdgeAi.installEmbedder()
+            .modelFromFile(file.path, filename: _embedderVariant.model.installFilename)
+            .install();
     }
   }
 
   @override
-  void cancelInstall(AiModelKind kind) => _cancelTokens[kind]?.cancel('Cancelled by user');
+  void cancelInstall(AiModelKind kind) => _cancelled.add(kind);
 
   @override
   Future<void> uninstall(AiModelKind kind) async {
     await unload(kind);
-    switch (kind) {
-      case AiModelKind.languageModel:
-        await FlutterEdgeAi.uninstallModel(_llmVariant.file.installFilename);
-      case AiModelKind.embedder:
-        await FlutterEdgeAi.uninstallEmbedder();
+    if (isInstalled(kind)) {
+      switch (kind) {
+        case AiModelKind.languageModel:
+          await FlutterEdgeAi.uninstallModel(_llmVariant.file.installFilename);
+        case AiModelKind.embedder:
+          await FlutterEdgeAi.uninstallEmbedder();
+      }
     }
+    await ResumableDownloader.deleteAll(_specFor(kind));
+  }
+
+  ModelArtifact _artifactFor(AiModelKind kind) => switch (kind) {
+    AiModelKind.languageModel => _llmVariant.file,
+    AiModelKind.embedder => _embedderVariant.model,
+  };
+
+  DownloadSpec _specFor(AiModelKind kind) {
+    final artifact = _artifactFor(kind);
+    return DownloadSpec(
+      url: Uri.parse(artifact.url),
+      target: File(p.join(_modelsDirectory.path, artifact.installFilename)),
+      expectedBytes: artifact.sizeBytes,
+      sha256: artifact.sha256,
+    );
   }
 
   @override

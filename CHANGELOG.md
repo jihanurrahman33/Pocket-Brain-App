@@ -12,6 +12,15 @@ uses [Semantic Versioning](https://semver.org/).
   no longer appear in the app, so models can change without UI changes.
 - An interrupted AI setup can be resumed and only downloads what is missing.
 
+### Fixed
+- AI downloads restarted from 0% after any interruption (restart, crash,
+  lost connection). Downloads now resume from the bytes on disk via HTTP
+  range requests, are verified by SHA-256, show progress from where they
+  stopped, and continue automatically on the next launch.
+- Stalled connections no longer hang the download forever.
+- Partial downloads are kept on disk instead of `/tmp`, which is RAM-backed
+  on many Linux systems.
+
 ## [0.2.0] - 2026-11-13
 
 ### Fixed

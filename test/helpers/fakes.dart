@@ -53,6 +53,9 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   final installOrder = <AiModelKind>[];
   final _cancelled = <AiModelKind>{};
 
+  /// Bytes on disk for components not yet installed (a paused download).
+  final partialBytes = <AiModelKind, int>{};
+
   @override
   List<AiComponent> get components => const [
     AiComponent(kind: AiModelKind.languageModel, sizeBytes: languageModelBytes),
@@ -65,15 +68,31 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   @override
   bool isLoaded(AiModelKind kind) => false;
 
+  int _size(AiModelKind kind) => components.firstWhere((c) => c.kind == kind).sizeBytes;
+
   @override
-  Future<void> install(AiModelKind kind, {required void Function(int percent) onProgress}) async {
+  int downloadedBytes(AiModelKind kind) =>
+      installed.contains(kind) ? _size(kind) : partialBytes[kind] ?? 0;
+
+  /// Downloads in thirds, resuming from [partialBytes] like the real runtime.
+  @override
+  Future<void> install(
+    AiModelKind kind, {
+    required void Function(int bytesOnDisk) onProgress,
+  }) async {
     installOrder.add(kind);
-    for (final p in [0, 50, 100]) {
+    final size = _size(kind);
+    var bytes = partialBytes[kind] ?? 0;
+    onProgress(bytes);
+    while (bytes < size) {
       await Future<void>.delayed(Duration.zero);
       if (_cancelled.remove(kind)) throw const InstallCancelledException();
-      if (kind == failOn && p == 50) throw StateError('connection reset');
-      onProgress(p);
+      if (kind == failOn && bytes >= size ~/ 2) throw StateError('connection reset');
+      bytes = (bytes + (size / 3).ceil()).clamp(0, size);
+      partialBytes[kind] = bytes;
+      onProgress(bytes);
     }
+    partialBytes.remove(kind);
     installed = {...installed, kind};
   }
 
@@ -81,8 +100,10 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   void cancelInstall(AiModelKind kind) => _cancelled.add(kind);
 
   @override
-  Future<void> uninstall(AiModelKind kind) async =>
-      installed = installed.where((k) => k != kind).toSet();
+  Future<void> uninstall(AiModelKind kind) async {
+    installed = installed.where((k) => k != kind).toSet();
+    partialBytes.remove(kind);
+  }
 
   @override
   Future<void> unload(AiModelKind kind) async {}

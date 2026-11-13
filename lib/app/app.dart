@@ -33,7 +33,7 @@ class _PocketBrainAppState extends State<PocketBrainApp> {
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
-      BlocProvider(lazy: false, create: (_) => sl<ModelBloc>()..add(const ModelRefreshRequested())),
+      BlocProvider(lazy: false, create: (_) => sl<ModelBloc>()..add(const ModelStarted())),
       BlocProvider(create: (_) => sl<HomeCubit>()..load()),
       BlocProvider(create: (_) => sl<LibraryCubit>()..load()),
       BlocProvider(create: (_) => sl<CaptureBloc>()),

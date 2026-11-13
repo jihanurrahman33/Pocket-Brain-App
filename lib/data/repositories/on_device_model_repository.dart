@@ -9,16 +9,14 @@ import '../datasources/ai/on_device_ai_runtime.dart';
 
 /// Presents the runtime's separate model components as one AI pack.
 ///
-/// Installation downloads every missing component in order and reports a
-/// single, size-weighted progress value, so the UI shows one download no
-/// matter how many models the pack contains.
+/// Installation downloads every missing component in order and reports one
+/// progress value for the whole pack, counting bytes already on disk, so an
+/// interrupted setup continues from where it stopped — also across restarts.
 final class OnDeviceModelRepository implements ModelRepository {
   OnDeviceModelRepository(this._runtime, this._logger);
 
   final OnDeviceAiRuntime _runtime;
   final AppLogger _logger;
-
-  static const _percent = 100;
 
   /// The component currently downloading, so cancel can target it.
   AiModelKind? _installing;
@@ -29,33 +27,36 @@ final class OnDeviceModelRepository implements ModelRepository {
       if (!_runtime.isInstalled(c.kind)) c,
   ];
 
+  int get _totalBytes => _runtime.components.fold(0, (sum, c) => sum + c.sizeBytes);
+
+  /// Bytes of the whole pack already on disk (installed or partial).
+  int get _bytesOnDisk => _runtime.components.fold(
+    0,
+    (sum, c) => sum + _runtime.downloadedBytes(c.kind).clamp(0, c.sizeBytes),
+  );
+
   @override
-  AiPackStatus status() {
-    final components = _runtime.components;
-    return AiPackStatus(
-      totalBytes: components.fold(0, (sum, c) => sum + c.sizeBytes),
-      remainingBytes: _missing.fold(0, (sum, c) => sum + c.sizeBytes),
-      isLoaded: components.any((c) => _runtime.isLoaded(c.kind)),
-    );
-  }
+  AiPackStatus status() => AiPackStatus(
+    totalBytes: _totalBytes,
+    remainingBytes: _missing.isEmpty ? 0 : _totalBytes - _bytesOnDisk,
+    isLoaded: _runtime.components.any((c) => _runtime.isLoaded(c.kind)),
+  );
 
   @override
   Future<Result<void>> install({required void Function(double progress) onProgress}) async {
-    final missing = _missing;
-    final total = missing.fold(0, (sum, c) => sum + c.sizeBytes);
-    var completedBytes = 0;
+    final total = _totalBytes;
     _cancelRequested = false;
     try {
-      for (final component in missing) {
+      for (final component in _missing) {
         if (_cancelRequested) throw const InstallCancelledException();
         _installing = component.kind;
+        // Everything on disk except the component now downloading.
+        final otherBytes = _bytesOnDisk - _runtime.downloadedBytes(component.kind);
+        onProgress((otherBytes + _runtime.downloadedBytes(component.kind)) / total);
         await _runtime.install(
           component.kind,
-          onProgress: (percent) => onProgress(
-            total == 0 ? 1 : (completedBytes + component.sizeBytes * percent / _percent) / total,
-          ),
+          onProgress: (bytes) => onProgress((otherBytes + bytes) / total),
         );
-        completedBytes += component.sizeBytes;
       }
       onProgress(1);
       return const Success(null);

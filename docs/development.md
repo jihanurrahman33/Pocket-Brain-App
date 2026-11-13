@@ -101,5 +101,6 @@ change `create()` in a way that existing installs cannot reach through
 | CMake / GTK errors | Install the Linux prerequisites above |
 | App slow or killed while answering | Gemma needs ~3 GB free RAM; close other apps, use **Settings → Free memory**, or try the GPU backend |
 | GPU backend crashes or fails | Switch back to CPU in **Settings → Compute backend** |
-| Model download stalls | Check connectivity; downloads resume, and **Retry download** is safe |
+| AI download interrupted | It resumes from the bytes on disk; tap **Resume setup** (or relaunch if setup was in progress) |
+| `Disk quota exceeded` / tests hang | `/tmp` is full — on many distros it is RAM-backed (tmpfs). Remove stale `/tmp/com.bbflight.background_downloader*` files from older builds |
 | `pumpAndSettle timed out` in a widget test | Use `settle(tester)` from `app_harness.dart` |

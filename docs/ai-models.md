@@ -19,6 +19,27 @@ banners say "Turn on Pocket Brain AI".
 - Component kinds (`AiModelKind`) and sizes live in the data layer
   (`OnDeviceAiRuntime.components`).
 
+### Resumable downloads
+
+Downloads never restart from zero. `ResumableDownloader`
+(`data/datasources/ai/resumable_downloader.dart`) is used instead of the
+engine package's downloader, because that one disables resume for Hugging
+Face URLs.
+
+- Bytes stream into `<app support>/ai_models/<file>.part` on disk.
+- Every attempt requests the rest with `Range: bytes=<on disk>-` (kept across
+  CDN redirects); a server that ignores ranges is handled by starting over.
+- Dropped or stalled connections (30 s idle timeout) are retried with
+  back-off; each retry resumes from disk.
+- The finished file must match the catalog's pinned size and SHA-256 before
+  it is registered with the engine (in place, no copy). Corrupt files are
+  deleted, never used.
+- Progress counts bytes already on disk, so the UI continues at the same
+  percentage after a restart.
+- An interrupted setup (crash, restart, network loss) resumes automatically
+  on the next launch; an explicit **Cancel** keeps the bytes but waits for
+  the user to tap **Resume setup**.
+
 To change models, edit `LiteRtAiRuntime` (variants and `components`). No
 domain or UI code changes. `test/data/ai_pack_test.dart` fails if
 user-facing code ever names a model.

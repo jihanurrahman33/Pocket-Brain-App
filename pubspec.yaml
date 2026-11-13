@@ -33,6 +33,7 @@ dependencies:
   stream_transform: ^2.1.2
   get_it: ^9.3.0
   sqflite_common: ^2.5.17
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:

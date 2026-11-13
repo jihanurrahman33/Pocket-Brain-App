@@ -7,6 +7,11 @@ sealed class ModelEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+/// App launch: load state and auto-resume an interrupted setup.
+final class ModelStarted extends ModelEvent {
+  const ModelStarted();
+}
+
 /// Re-reads install state.
 final class ModelRefreshRequested extends ModelEvent {
   const ModelRefreshRequested();

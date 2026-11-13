@@ -10,4 +10,10 @@ abstract interface class PreferencesRepository {
   ComputeBackend get computeBackend;
 
   Future<void> setComputeBackend(ComputeBackend backend);
+
+  /// The user started AI setup and has not cancelled it. Used to resume an
+  /// interrupted setup automatically on the next launch.
+  bool get aiSetupRequested;
+
+  Future<void> setAiSetupRequested(bool requested);
 }

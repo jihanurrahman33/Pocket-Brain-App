@@ -246,9 +246,9 @@ void _registerUseCases() {
     ..registerLazySingleton(() => WriteWeeklyRecap(sl(), sl()))
     // Models
     ..registerLazySingleton(() => GetAiOverview(sl(), sl()))
-    ..registerLazySingleton(() => InstallAi(sl(), sl()))
-    ..registerLazySingleton(() => CancelAiInstall(sl()))
-    ..registerLazySingleton(() => UninstallAi(sl()))
+    ..registerLazySingleton(() => InstallAi(sl(), sl(), sl()))
+    ..registerLazySingleton(() => CancelAiInstall(sl(), sl()))
+    ..registerLazySingleton(() => UninstallAi(sl(), sl()))
     ..registerLazySingleton(() => ChangeComputeBackend(sl(), sl()))
     ..registerLazySingleton(() => UnloadModels(sl()))
     // Settings

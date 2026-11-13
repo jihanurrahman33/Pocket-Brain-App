@@ -31,6 +31,9 @@ class AiPackStatus extends Equatable {
 
   bool get isInstalled => remainingBytes == 0;
 
+  /// Share of the pack already on disk, in [0, 1].
+  double get downloadedFraction => totalBytes == 0 ? 1 : 1 - remainingBytes / totalBytes;
+
   /// Some, but not all, components are present (e.g. an interrupted setup).
   bool get isPartiallyInstalled => remainingBytes > 0 && remainingBytes < totalBytes;
 

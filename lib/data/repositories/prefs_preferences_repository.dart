@@ -10,6 +10,7 @@ final class SharedPrefsPreferencesRepository implements PreferencesRepository {
 
   static const _aiSuggestionsKey = 'ai_suggestions';
   static const _backendKey = 'backend';
+  static const _aiSetupKey = 'ai_setup_requested';
 
   @override
   bool get aiSuggestionsEnabled => _prefs.getBool(_aiSuggestionsKey) ?? true;
@@ -24,4 +25,10 @@ final class SharedPrefsPreferencesRepository implements PreferencesRepository {
   @override
   Future<void> setComputeBackend(ComputeBackend backend) =>
       _prefs.setString(_backendKey, backend.name);
+
+  @override
+  bool get aiSetupRequested => _prefs.getBool(_aiSetupKey) ?? false;
+
+  @override
+  Future<void> setAiSetupRequested(bool requested) => _prefs.setBool(_aiSetupKey, requested);
 }

@@ -49,9 +49,16 @@ abstract interface class OnDeviceAiRuntime {
 
   bool isLoaded(AiModelKind kind);
 
-  /// [onProgress] receives 0–100. Throws [InstallCancelledException] if
-  /// [cancelInstall] is called meanwhile.
-  Future<void> install(AiModelKind kind, {required void Function(int percent) onProgress});
+  /// Bytes of [kind] already on disk: its full size when installed, the
+  /// partial download otherwise. Survives restarts, so progress can resume.
+  int downloadedBytes(AiModelKind kind);
+
+  /// Downloads (resuming any partial file) and registers [kind].
+  ///
+  /// [onProgress] receives the bytes on disk, including a resumed prefix.
+  /// Throws [InstallCancelledException] if [cancelInstall] is called; the
+  /// partial download is kept so the next install resumes from it.
+  Future<void> install(AiModelKind kind, {required void Function(int bytesOnDisk) onProgress});
 
   void cancelInstall(AiModelKind kind);
 

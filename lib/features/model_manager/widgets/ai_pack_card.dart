@@ -67,7 +67,13 @@ class AiPackCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (state.progress case final progress?) _Progress(state: state, progress: progress),
+              if (state.progress case final progress?)
+                _Progress(state: state, progress: progress)
+              else if (state.pack case final pack? when pack.isPartiallyInstalled)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: LinearProgressIndicator(value: pack.downloadedFraction),
+                ),
               if (state.failure case final failure?) ...[
                 const Gap.sm(),
                 Text(failure.message, style: TextStyle(color: theme.colorScheme.error)),
@@ -93,7 +99,8 @@ class _Progress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final download = state.pack?.remainingBytes ?? 0;
+    // Progress covers the whole pack, including bytes from earlier sessions.
+    final download = state.pack?.totalBytes ?? 0;
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.md),
       child: Column(
@@ -177,7 +184,10 @@ class _StatusChip extends StatelessWidget {
       null => ('Checking…', Icons.hourglass_empty_rounded),
       AiPackStatus(isInstalled: true, isLoaded: true) => ('Active', Icons.bolt_rounded),
       AiPackStatus(isInstalled: true) => ('Ready', Icons.check_circle_outline_rounded),
-      AiPackStatus(isPartiallyInstalled: true) => ('Setup incomplete', Icons.pause_circle_outline),
+      AiPackStatus(isPartiallyInstalled: true) => (
+        'Paused at ${(pack.downloadedFraction * 100).floor()}%',
+        Icons.pause_circle_outline,
+      ),
       _ => ('Not set up', Icons.cloud_download_outlined),
     };
     return Chip(
