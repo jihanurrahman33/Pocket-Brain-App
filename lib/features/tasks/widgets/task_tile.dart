@@ -45,8 +45,8 @@ class TaskTile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final overdue = task.isOverdue(DateTime.now());
     final details = [
-      if (task.dueAt != null) 'Due ${Formatters.friendlyDate(task.dueAt!)}',
-      if (task.reminderAt != null) 'Reminder ${Formatters.shortDateTime(task.reminderAt!)}',
+      if (task.dueAt != null) 'Due ${Formatters.day(task.dueAt!)}',
+      if (task.reminderAt != null) 'Reminder ${Formatters.reminder(task.reminderAt!)}',
     ].join(' · ');
     return ListTile(
       leading: Checkbox(

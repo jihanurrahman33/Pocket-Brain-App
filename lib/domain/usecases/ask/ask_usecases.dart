@@ -12,6 +12,7 @@ import '../../entities/capture.dart';
 import '../../entities/conversation.dart';
 import '../../entities/memory.dart';
 import '../../entities/search.dart';
+import '../../entities/task_item.dart';
 import '../../repositories/conversation_repository.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
@@ -19,6 +20,7 @@ import '../../services/ai_services.dart';
 import '../../services/assistant_guardrails.dart';
 import '../../services/assistant_toolbox.dart';
 import '../../services/language_detector.dart';
+import '../../services/task_summary.dart';
 import '../capture/capture_usecases.dart';
 import '../search/search_usecases.dart';
 import '../tasks/task_usecases.dart';
@@ -130,13 +132,25 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     final sources = await _findSources(question, request.history, conversation.collectionId);
     yield AskSourcesFound(sources);
 
-    final toolbox = AssistantToolbox(tasks: _tasks, ids: _ids, clock: _clock);
+    final toolbox = AssistantToolbox(tasks: _tasks, ids: _ids, clock: _clock, question: question);
+    // Deterministic routing: task questions get real task data up front.
+    final preloaded = AssistantGuardrails.asksAboutTasks(question)
+        ? await toolbox.preloadTasks(AssistantGuardrails.taskFilterFor(question))
+        : null;
     var snapshot = '';
-    await for (final text in _answerStream(question, sources, request.history, toolbox)) {
+    await for (final text in _answerStream(
+      question,
+      sources,
+      request.history,
+      toolbox,
+      preloaded,
+    )) {
       if (request.isStopRequested()) break;
       snapshot = text;
       yield AskAnswerUpdated(snapshot);
     }
+
+    if (toolbox.listedTasks.isNotEmpty) yield AskTasksFound(toolbox.listedTasks);
 
     final answer = _finalAnswer(
       conversation.id,
@@ -169,7 +183,19 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     List<Memory> sources,
     List<ChatMessage> history,
     AssistantToolbox toolbox,
+    List<TaskItem>? preloadedTasks,
   ) {
+    // Task questions are answered by the app: the cards show the tasks and
+    // the summary is computed, so it is instant and always correct.
+    if (preloadedTasks != null) {
+      return Stream.value(
+        TaskSummary.describe(
+          preloadedTasks,
+          now: _clock.now(),
+          language: LanguageDetector.detect(question),
+        ),
+      );
+    }
     if (!_generator.isAvailable) {
       return Stream.value(sources.isEmpty ? AskReplies.notFound : AskReplies.modelMissing);
     }
@@ -180,6 +206,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
         history: history,
         today: _clock.now(),
         language: LanguageDetector.detect(question),
+        tasks: preloadedTasks,
       ),
       toolbox: toolbox,
     );
@@ -215,6 +242,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       sourceIds: cites ? [for (final m in sources) m.id] : const [],
       grounded: hasEvidence && !nothingFound,
       actions: proposals,
+      taskIds: [for (final t in toolbox.listedTasks) t.id],
     );
   }
 
@@ -231,6 +259,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     List<String> sourceIds = const [],
     bool grounded = true,
     List<AssistantAction> actions = const [],
+    List<String> taskIds = const [],
   }) => ChatMessage(
     id: _ids.next(),
     conversationId: conversationId,
@@ -239,6 +268,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     sourceIds: sourceIds,
     grounded: grounded,
     actions: actions,
+    taskIds: taskIds,
     createdAt: _clock.now(),
   );
 }
@@ -255,22 +285,38 @@ final class GetConversations implements UseCase<Result<List<Conversation>>, NoPa
 }
 
 /// A conversation's messages and the memories they cite.
-typedef ConversationTranscript = ({List<ChatMessage> messages, Map<String, Memory> sources});
+/// A conversation's messages with the memories and tasks they reference.
+/// Deleted tasks or memories are simply left out.
+typedef ConversationTranscript = ({
+  List<ChatMessage> messages,
+  Map<String, Memory> sources,
+  Map<String, TaskItem> tasks,
+});
 
 final class OpenConversation implements UseCase<Result<ConversationTranscript>, String> {
-  const OpenConversation(this._conversations, this._memories, this._logger);
+  const OpenConversation(this._conversations, this._memories, this._tasks, this._logger);
 
   final ConversationRepository _conversations;
   final MemoryRepository _memories;
+  final TaskRepository _tasks;
   final AppLogger _logger;
 
   @override
   Future<Result<ConversationTranscript>> call(String id) =>
       guard(_logger, 'Open conversation', () async {
         final messages = await _conversations.messages(id);
-        final ids = {for (final m in messages) ...m.sourceIds}.toList();
-        final sources = await _memories.getByIds(ids);
-        return (messages: messages, sources: {for (final m in sources) m.id: m});
+        final memoryIds = {for (final m in messages) ...m.sourceIds}.toList();
+        final sources = await _memories.getByIds(memoryIds);
+        final taskIds = {for (final m in messages) ...m.taskIds};
+        final tasks = taskIds.isEmpty ? const <TaskItem>[] : await _tasks.getAll();
+        return (
+          messages: messages,
+          sources: {for (final m in sources) m.id: m},
+          tasks: {
+            for (final t in tasks)
+              if (taskIds.contains(t.id)) t.id: t,
+          },
+        );
       });
 }
 

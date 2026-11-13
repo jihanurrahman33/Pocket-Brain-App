@@ -130,7 +130,7 @@ class OpenTasksSection extends StatelessWidget {
                 dense: true,
                 leading: const Icon(Icons.radio_button_unchecked_rounded),
                 title: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-                subtitle: t.dueAt == null ? null : Text('Due ${Formatters.friendlyDate(t.dueAt!)}'),
+                subtitle: t.dueAt == null ? null : Text('Due ${Formatters.day(t.dueAt!)}'),
                 onTap: () => context.push(AppRoutes.tasks),
               ),
           ],

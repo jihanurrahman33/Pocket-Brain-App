@@ -149,6 +149,7 @@ abstract final class ConversationMapper {
     grounded: _bool(row['grounded']),
     createdAt: _date(row['created_at']),
     actions: actionsFromJson(row['actions'] as String?),
+    taskIds: row['task_ids'] == null ? const [] : _stringList(row['task_ids']),
   );
 
   static List<AssistantAction> actionsFromJson(String? json) => [
@@ -180,5 +181,6 @@ abstract final class ConversationMapper {
     'grounded': _int(m.grounded),
     'created_at': m.createdAt.millisecondsSinceEpoch,
     'actions': actionsToJson(m.actions),
+    'task_ids': jsonEncode(m.taskIds),
   };
 }

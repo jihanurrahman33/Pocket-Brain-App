@@ -12,7 +12,7 @@ abstract final class Tables {
 
 /// Schema creation and migrations.
 abstract final class DatabaseSchema {
-  static const version = 2;
+  static const version = 3;
 
   static Future<void> create(Database db) async {
     final batch = db.batch()
@@ -72,7 +72,8 @@ abstract final class DatabaseSchema {
           source_ids TEXT NOT NULL DEFAULT '[]',
           grounded INTEGER NOT NULL DEFAULT 1,
           created_at INTEGER NOT NULL,
-          actions TEXT NOT NULL DEFAULT '[]'
+          actions TEXT NOT NULL DEFAULT '[]',
+          task_ids TEXT NOT NULL DEFAULT '[]'
         )''')
       ..execute('''
         CREATE TABLE ${Tables.recentSearches} (
@@ -86,7 +87,12 @@ abstract final class DatabaseSchema {
   /// existing installs reach it through these steps.
   static Future<void> migrate(Database db, int from, int to) async {
     if (from < 2) await _toV2(db);
+    if (from < 3) await _toV3(db);
   }
+
+  /// v3: tasks an answer shows as cards.
+  static Future<void> _toV3(Database db) =>
+      db.execute("ALTER TABLE ${Tables.messages} ADD COLUMN task_ids TEXT NOT NULL DEFAULT '[]'");
 
   /// v2: images/recordings on memories, assistant actions on chat messages.
   static Future<void> _toV2(Database db) async {

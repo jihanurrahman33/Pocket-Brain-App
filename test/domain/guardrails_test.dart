@@ -2,10 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_brain/app/di/injection.dart';
 import 'package:pocket_brain/data/datasources/ai/on_device_ai_runtime.dart';
 import 'package:pocket_brain/domain/entities/ask.dart';
+import 'package:pocket_brain/domain/entities/task_item.dart';
 import 'package:pocket_brain/domain/repositories/memory_repository.dart';
 import 'package:pocket_brain/domain/services/assistant_guardrails.dart';
 import 'package:pocket_brain/domain/services/language_detector.dart';
+import 'package:pocket_brain/domain/services/task_summary.dart';
 import 'package:pocket_brain/domain/usecases/ask/ask_usecases.dart';
+import 'package:pocket_brain/domain/usecases/tasks/task_usecases.dart';
 
 import '../helpers/fakes.dart';
 import '../helpers/test_dependencies.dart';
@@ -57,6 +60,13 @@ void main() {
       );
     });
 
+    test('markdown emphasis is stripped from answers', () {
+      expect(
+        AssistantGuardrails.cleanAnswer('You have **1** open task.', sourceCount: 0),
+        'You have 1 open task.',
+      );
+    });
+
     test('questions are trimmed and bounded', () {
       expect(AssistantGuardrails.prepareQuestion('  hi   there  '), 'hi there');
       expect(
@@ -64,6 +74,27 @@ void main() {
         AssistantGuardrails.maxQuestionChars,
       );
     });
+  });
+
+  test('routes questions about existing tasks, not requests to create one', () {
+    for (final q in [
+      'what todos i have now?',
+      "What's overdue?",
+      'show my tasks',
+      'any deadlines this week?',
+      'amar ki kaj ache?',
+    ]) {
+      expect(AssistantGuardrails.asksAboutTasks(q), isTrue, reason: q);
+    }
+    for (final q in [
+      'remind me to drink water',
+      'add a task to call mum',
+      'What was that React idea?',
+    ]) {
+      expect(AssistantGuardrails.asksAboutTasks(q), isFalse, reason: q);
+    }
+    expect(AssistantGuardrails.taskFilterFor("what's overdue?"), 'overdue');
+    expect(AssistantGuardrails.taskFilterFor('what todos do I have'), 'open');
   });
 
   test('detects English, Bangla script and Banglish', () {
@@ -132,6 +163,43 @@ void main() {
     test('Banglish questions ask for a Banglish answer', () async {
       await ask('ami ekta boi portesilam eta kobe sesh hobe?');
       expect(ai.requests.last.prompt, contains('LANGUAGE: Reply in Bangla, using Bengali script'));
+    });
+
+    // Regression: the real model sometimes skipped list_tasks, so "what todos
+    // do I have?" got "couldn't find" and no cards.
+    test('task questions show real tasks even when the model calls no tool', () async {
+      await sl<AddTask>()(const NewTask(title: 'Drink water'));
+      ai.reply = ['You have one task due tomorrow.']; // what the real model wrongly said
+      final events = await sl<AskBrain>()(const AskRequest(question: 'what todos i have now?'))
+          .toList();
+      expect(events.whereType<AskTasksFound>().single.tasks.single.title, 'Drink water');
+      final answer = events.whereType<AskAnswerCompleted>().single.message;
+      expect(answer.text, 'You have 1 open task.', reason: 'computed, not generated');
+      expect(answer.grounded, isTrue);
+      expect(answer.taskIds, hasLength(1));
+      expect(
+        ai.requests.where((r) => !r.systemInstruction.contains('search keywords')),
+        isEmpty,
+        reason: 'no answer generation for task questions',
+      );
+    });
+
+    test('task summaries are computed correctly in English and Bangla', () {
+      final now = DateTime(2026, 11, 14, 0, 5);
+      final tasks = [
+        TaskItem(id: '1', title: 'Drink water', createdAt: now, dueAt: DateTime(2026, 11, 14)),
+        TaskItem(id: '2', title: 'Meeting', createdAt: now, dueAt: DateTime(2026, 11, 15)),
+        TaskItem(id: '3', title: 'Old', createdAt: now, dueAt: DateTime(2026, 11, 10)),
+      ];
+      expect(
+        TaskSummary.describe(tasks, now: now),
+        'You have 3 open tasks: 1 overdue, 1 due today, 1 due tomorrow.',
+      );
+      expect(TaskSummary.describe(const [], now: now), 'You have no tasks.');
+      expect(
+        TaskSummary.describe(tasks, now: now, language: ReplyLanguage.banglish),
+        contains('3 টি কাজ বাকি'),
+      );
     });
 
     test('memories are passed as data, never as instructions', () async {

@@ -74,9 +74,7 @@ class _DigestContent extends StatelessWidget {
                     dense: true,
                     leading: const Icon(Icons.radio_button_unchecked_rounded),
                     title: Text(t.title),
-                    subtitle: t.dueAt == null
-                        ? null
-                        : Text('Due ${Formatters.friendlyDate(t.dueAt!)}'),
+                    subtitle: t.dueAt == null ? null : Text('Due ${Formatters.day(t.dueAt!)}'),
                   ),
               ],
             ),

@@ -25,6 +25,16 @@ uses [Semantic Versioning](https://semver.org/).
   AI query rewriting, and answers come back in the user's language.
 - The model is given today's date and the next two weeks, so "next Friday"
   becomes the right date.
+- Ask Brain shows tasks as **interactive cards** (tick off, due day,
+  reminder, overdue) instead of a typed list; task questions are answered
+  by the app from real data — instant and always correct.
+
+### Fixed
+- "Remind me after 5 minutes" created a deadline for today and a 9:00 AM
+  reminder. Reminder times are now computed by the app from the user's own
+  words ("in 5 minutes", "after 2 hours", "5 minute pore", "at 6 pm"), and a
+  relative reminder no longer invents a deadline.
+- Date-only deadlines no longer display as "12:00 AM".
 
 ### Changed
 - On-device AI is now one **Pocket Brain AI** setup with a single download

@@ -86,6 +86,24 @@ abstract final class AnswerPromptBuilder {
         ..writeln(TextUtils.truncate(m.content, _maxSourceChars).replaceAll('</memory>', ''))
         ..writeln('</memory>');
     }
+    if (input.tasks case final tasks?) {
+      prompt.writeln("THE USER'S TASKS (already shown to them as cards):");
+      if (tasks.isEmpty) prompt.writeln('(none)');
+      for (final t in tasks) {
+        prompt.writeln(
+          '- ${t.title}'
+          '${t.dueAt == null ? '' : ' | due ${DateFormat('yyyy-MM-dd').format(t.dueAt!)}'}'
+          '${t.isOverdue(input.today) ? ' | OVERDUE' : ''}'
+          '${t.isDone ? ' | done' : ''}',
+        );
+      }
+      prompt
+        ..writeln(
+          'Reply with one short sentence about these tasks (how many, what is overdue '
+          'or due soon). Do not list them; the cards already do.',
+        )
+        ..writeln();
+    }
     final history = input.history.length > _maxHistoryTurns
         ? input.history.sublist(input.history.length - _maxHistoryTurns)
         : input.history;
@@ -116,7 +134,9 @@ abstract final class AnswerPromptBuilder {
         'If the user asks you to create a task or reminder, call create_task. If they '
         'ask you to remember or note something, call save_memory. For questions about '
         'their tasks or deadlines, call list_tasks. Never claim an action is done: '
-        'the user confirms it.',
+        'the user confirms it. The app shows listed tasks as cards, so do not list '
+        'them again: reply with one short sentence (e.g. how many, which is overdue). '
+        'Write plain text without markdown.',
       );
     }
     return GenerationRequest(
@@ -137,7 +157,7 @@ String _calendar(DateTime today) {
   final upcoming = [
     for (var i = 1; i <= days; i++) format.format(DateTime(today.year, today.month, today.day + i)),
   ];
-  return 'TODAY: ${DateFormat('EEEE yyyy-MM-dd').format(today)}\n'
+  return 'NOW: ${DateFormat('EEEE yyyy-MM-dd HH:mm').format(today)}\n'
       'NEXT DAYS: ${upcoming.join(', ')}\n'
       'For dates like "tomorrow" or "next Friday", use the matching date above.';
 }

@@ -192,9 +192,7 @@ class LinkedTasks extends StatelessWidget {
                   value: task.isDone,
                   onChanged: (_) => onToggle(task),
                   title: Text(task.title),
-                  subtitle: task.dueAt == null
-                      ? null
-                      : Text('Due ${Formatters.friendlyDate(task.dueAt!)}'),
+                  subtitle: task.dueAt == null ? null : Text('Due ${Formatters.day(task.dueAt!)}'),
                 ),
             ],
           ),

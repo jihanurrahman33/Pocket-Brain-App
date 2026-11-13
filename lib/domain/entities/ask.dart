@@ -4,6 +4,7 @@ import '../services/language_detector.dart';
 
 import 'conversation.dart';
 import 'memory.dart';
+import 'task_item.dart';
 
 /// Fixed replies, so the app never invents memories.
 abstract final class AskReplies {
@@ -116,6 +117,16 @@ final class AskAnswerUpdated extends AskProgress {
   List<Object?> get props => [text];
 }
 
+/// Tasks a tool looked up for this answer, to show as cards.
+final class AskTasksFound extends AskProgress {
+  const AskTasksFound(this.tasks);
+
+  final List<TaskItem> tasks;
+
+  @override
+  List<Object?> get props => [tasks];
+}
+
 final class AskAnswerCompleted extends AskProgress {
   const AskAnswerCompleted(this.message);
 
@@ -133,6 +144,7 @@ class AnswerPrompt extends Equatable {
     required this.today,
     this.history = const [],
     this.language = ReplyLanguage.english,
+    this.tasks,
   });
 
   final String question;
@@ -142,9 +154,13 @@ class AnswerPrompt extends Equatable {
 
   /// The language to answer in.
   final ReplyLanguage language;
+
+  /// The user's tasks, when the app already fetched them for a task
+  /// question (null when not fetched; empty when there are none).
+  final List<TaskItem>? tasks;
   final List<Memory> sources;
   final List<ChatMessage> history;
 
   @override
-  List<Object?> get props => [question, sources, today, history, language];
+  List<Object?> get props => [question, sources, today, history, language, tasks];
 }

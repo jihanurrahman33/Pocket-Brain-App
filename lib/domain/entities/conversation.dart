@@ -34,6 +34,7 @@ class ChatMessage extends Equatable {
     this.sourceIds = const [],
     this.grounded = true,
     this.actions = const [],
+    this.taskIds = const [],
   });
 
   final String id;
@@ -49,6 +50,9 @@ class ChatMessage extends Equatable {
   /// Changes the assistant proposed in this answer, awaiting confirmation.
   final List<AssistantAction> actions;
 
+  /// Tasks this answer is about, shown as cards (e.g. "what's overdue?").
+  final List<String> taskIds;
+
   bool get isUser => role == ChatRole.user;
 
   ChatMessage withAction(AssistantAction action) => ChatMessage(
@@ -60,6 +64,7 @@ class ChatMessage extends Equatable {
     sourceIds: sourceIds,
     grounded: grounded,
     actions: [for (final a in actions) a.id == action.id ? action : a],
+    taskIds: taskIds,
   );
 
   @override
@@ -72,5 +77,6 @@ class ChatMessage extends Equatable {
     grounded,
     createdAt,
     actions,
+    taskIds,
   ];
 }

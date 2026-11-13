@@ -11,6 +11,7 @@ import 'package:pocket_brain/domain/repositories/task_repository.dart';
 import 'package:pocket_brain/domain/services/ai_services.dart';
 import 'package:pocket_brain/domain/usecases/capture/capture_usecases.dart';
 import 'package:pocket_brain/domain/usecases/collections/collection_usecases.dart';
+import 'package:pocket_brain/domain/usecases/tasks/task_usecases.dart';
 import 'package:pocket_brain/features/ask/bloc/ask_bloc.dart';
 import 'package:pocket_brain/features/capture/bloc/capture_bloc.dart';
 import 'package:pocket_brain/features/collections/bloc/collection_cubit.dart';
@@ -155,6 +156,14 @@ void main() {
       expect(await sl<ConversationRepository>().getAll(), hasLength(2));
       await bloc.close();
     });
+  });
+
+  test('AskBloc ticks a task off from its card', () async {
+    final task = (await sl<AddTask>()(const NewTask(title: 'Drink water'))).valueOrNull!;
+    final bloc = sl<AskBloc>()..add(AskTaskToggled(task));
+    await untilState(bloc, (s) => s.tasks[task.id]?.isDone ?? false);
+    expect((await sl<TaskRepository>().getAll()).single.isDone, isTrue);
+    await bloc.close();
   });
 
   // Regression: in-collection search bypassed the use-case layer.

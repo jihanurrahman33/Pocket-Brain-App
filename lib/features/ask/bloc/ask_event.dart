@@ -56,6 +56,16 @@ final class AskStopRequested extends AskEvent {
   const AskStopRequested();
 }
 
+/// The user ticked a task card in an answer.
+final class AskTaskToggled extends AskEvent {
+  const AskTaskToggled(this.task);
+
+  final TaskItem task;
+
+  @override
+  List<Object?> get props => [task];
+}
+
 /// The user confirmed or dismissed a change the assistant proposed.
 final class AskActionDecided extends AskEvent {
   const AskActionDecided({

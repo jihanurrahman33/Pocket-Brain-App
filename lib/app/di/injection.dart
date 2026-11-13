@@ -274,7 +274,7 @@ void _registerUseCases() {
     )
     ..registerLazySingleton(() => DismissAssistantAction(sl(), sl()))
     ..registerLazySingleton(() => GetConversations(sl(), sl()))
-    ..registerLazySingleton(() => OpenConversation(sl(), sl(), sl()))
+    ..registerLazySingleton(() => OpenConversation(sl(), sl(), sl(), sl()))
     ..registerLazySingleton(() => DeleteConversation(sl(), sl()))
     ..registerLazySingleton(() => GetSuggestedQuestions(sl()))
     // Recall
@@ -370,6 +370,7 @@ void _registerPresentation() {
         getCollections: sl(),
         confirmAction: sl(),
         dismissAction: sl(),
+        toggleTask: sl(),
       ),
     )
     ..registerFactory(

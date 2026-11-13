@@ -278,7 +278,7 @@ class _SuggestedTasks extends StatelessWidget {
                 title: Text(task.title),
                 subtitle: task.dueAt == null
                     ? null
-                    : Text('Deadline: ${Formatters.friendlyDate(task.dueAt!)}'),
+                    : Text('Deadline: ${Formatters.day(task.dueAt!)}'),
                 secondary: const Icon(Icons.task_alt_rounded),
               ),
             Padding(

@@ -62,10 +62,9 @@ class AssistantActionCard extends StatelessWidget {
         'Create task',
         [
           args['title'] ?? '',
-          if (DateTime.tryParse(args['due'] ?? '') case final due?)
-            'Due ${Formatters.friendlyDate(due)}',
+          if (DateTime.tryParse(args['due'] ?? '') case final due?) 'Due ${Formatters.day(due)}',
           if (DateTime.tryParse(args['reminder'] ?? '') case final at?)
-            'Reminder ${Formatters.shortDateTime(at)}',
+            'Reminder ${Formatters.reminder(at)}',
         ],
       ),
       AssistantActionType.saveMemory => (

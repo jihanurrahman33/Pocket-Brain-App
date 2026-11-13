@@ -172,11 +172,33 @@ void main() {
           (AssistantToolbox.listTasks, {'filter': 'overdue'}),
         ]
         ..reply = ['Pay rent is overdue.'];
-      final answer = (await ask("What's overdue?")).message;
+      // Not worded as a task question, so the model decides to call the tool.
+      final answer = (await ask('Is there anything I forgot to pay?')).message;
       expect(answer.text, 'Pay rent is overdue.');
       expect(answer.grounded, isTrue);
       final listed = ai.toolResults.single['tasks']! as List<Object?>;
       expect((listed.single! as Map)['title'], 'Pay rent');
+    });
+
+    // The app, not the model, draws listed tasks as cards.
+    test('listed tasks are shown as cards and survive reopening the chat', () async {
+      await sl<AddTask>()(NewTask(title: 'Pay rent', dueAt: DateTime(2026, 11, 1)));
+      ai
+        ..toolCalls = [
+          (AssistantToolbox.listTasks, {'filter': 'open'}),
+        ]
+        ..reply = ['You have **1** open task.'];
+      final events = await sl<AskBrain>()(const AskRequest(question: 'What todos do I have?'))
+          .toList();
+      final found = events.whereType<AskTasksFound>().single.tasks;
+      expect(found.single.title, 'Pay rent');
+      final answer = events.whereType<AskAnswerCompleted>().single.message;
+      expect(answer.taskIds, [found.single.id]);
+      expect(answer.text, 'You have 1 open task: 1 overdue.');
+
+      final reopened = (await sl<OpenConversation>()(answer.conversationId)).valueOrNull!;
+      expect(reopened.tasks.keys, [found.single.id]);
+      expect(reopened.messages.last.taskIds, [found.single.id]);
     });
 
     test('never invents: no memories and no tool data means "not found"', () async {
@@ -235,7 +257,7 @@ void main() {
     });
   });
 
-  test('database v1 → v2 migration keeps data and adds columns', () async {
+  test('database v1 → latest migration keeps data and adds columns', () async {
     sqfliteFfiInit();
     final path = '${testFilesDirectory.path}/v1.db';
     final v1 = await databaseFactoryFfi.openDatabase(
@@ -277,7 +299,7 @@ void main() {
     expect(row['content'], 'kept');
     expect(row['attachments'], '[]');
     final columns = await v2.rawQuery('PRAGMA table_info(messages)');
-    expect(columns.map((c) => c['name']), contains('actions'));
+    expect(columns.map((c) => c['name']), containsAll(['actions', 'task_ids']));
     await v2.close();
   });
 }

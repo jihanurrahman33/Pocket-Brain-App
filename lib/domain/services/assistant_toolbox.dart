@@ -1,7 +1,9 @@
 import '../../core/utils/clock.dart';
 import '../../core/utils/id_generator.dart';
 import '../entities/assistant.dart';
+import '../entities/task_item.dart';
 import '../repositories/task_repository.dart';
+import 'reminder_time_parser.dart';
 
 /// The tools Ask Brain's model may call during one answer.
 ///
@@ -9,14 +11,22 @@ import '../repositories/task_repository.dart';
 /// they record an [AssistantAction] proposal that the user must confirm, and
 /// tell the model so. A new toolbox is used for every answer.
 final class AssistantToolbox {
-  AssistantToolbox({required TaskRepository tasks, required IdGenerator ids, required Clock clock})
-    : _tasks = tasks,
-      _ids = ids,
-      _clock = clock;
+  AssistantToolbox({
+    required TaskRepository tasks,
+    required IdGenerator ids,
+    required Clock clock,
+    String question = '',
+  }) : _tasks = tasks,
+       _ids = ids,
+       _clock = clock,
+       _question = question;
 
   final TaskRepository _tasks;
   final IdGenerator _ids;
   final Clock _clock;
+
+  /// The user's words; times they state ("in 5 minutes") override the model.
+  final String _question;
 
   static const createTask = 'create_task';
   static const saveMemory = 'save_memory';
@@ -39,11 +49,23 @@ final class AssistantToolbox {
           'title': {'type': 'string', 'description': 'What needs doing, short and clear.'},
           'due_date': {
             'type': 'string',
-            'description': 'Deadline as YYYY-MM-DD, or an empty string if none was given.',
+            'description':
+                'Deadline as YYYY-MM-DD only if the user gave a deadline day, else empty.',
           },
           'remind': {'type': 'boolean', 'description': 'True when the user asked to be reminded.'},
+          'remind_in_minutes': {
+            'type': 'integer',
+            'description':
+                'For "in/after N minutes or hours": the delay in minutes (2 hours = 120). '
+                'Otherwise 0.',
+          },
+          'remind_time': {
+            'type': 'string',
+            'description':
+                'For a clock time like "at 6 pm": 24-hour HH:MM (18:00). Otherwise empty.',
+          },
         },
-        'required': ['title', 'due_date', 'remind'],
+        'required': ['title', 'due_date', 'remind', 'remind_in_minutes', 'remind_time'],
       },
     ),
     AssistantTool(
@@ -77,7 +99,11 @@ final class AssistantToolbox {
   ];
 
   final _proposals = <AssistantAction>[];
+  final _listedTasks = <TaskItem>[];
   bool _readUserData = false;
+
+  /// Tasks a read tool returned, to show as cards under the answer.
+  List<TaskItem> get listedTasks => List.unmodifiable(_listedTasks);
 
   /// Changes proposed during this answer, in order.
   List<AssistantAction> get proposals => List.unmodifiable(_proposals);
@@ -85,6 +111,13 @@ final class AssistantToolbox {
   /// True when the answer is based on data a tool returned (e.g. tasks),
   /// so it is grounded even without matching memories.
   bool get readUserData => _readUserData;
+
+  /// Looks tasks up directly (used when the app routes a task question
+  /// itself) and records them as cards, exactly like a `list_tasks` call.
+  Future<List<TaskItem>> preloadTasks(String filter) async {
+    await _listTasks({'filter': filter});
+    return listedTasks;
+  }
 
   /// Runs one call. Never throws: problems are returned for the model to read.
   Future<Map<String, Object?>> run(String name, Map<String, Object?> args) async {
@@ -107,10 +140,19 @@ final class AssistantToolbox {
     if (due.isNotEmpty && (!_isoDate.hasMatch(due) || DateTime.tryParse(due) == null)) {
       return {'error': 'due_date must be YYYY-MM-DD or empty.'};
     }
-    final reminder = args['remind'] == true ? _reminderTime(DateTime.tryParse(due)) : null;
+    final dueDay = DateTime.tryParse(due);
+    final (reminder, relative) = _reminderFor(args, dueDay);
+    // "Remind me in 5 minutes" sets a reminder, not a deadline: drop a due
+    // date the model filled in as "today" for a relative reminder.
+    final now = _clock.now();
+    final dueIsToday =
+        dueDay != null &&
+        dueDay.year == now.year &&
+        dueDay.month == now.month &&
+        dueDay.day == now.day;
     return _propose(AssistantActionType.createTask, {
       'title': title.length > _maxTitleLength ? title.substring(0, _maxTitleLength) : title,
-      'due': due,
+      'due': dueDay != null && !(relative && dueIsToday) ? due : '',
       if (reminder != null) 'reminder': reminder.toIso8601String(),
     });
   }
@@ -140,11 +182,16 @@ final class AssistantToolbox {
       'done' => all.where((t) => t.isDone),
       'all' => all,
       _ => all.where((t) => !t.isDone),
-    };
+    }.take(_maxListedTasks).toList();
+    // The app shows these as interactive cards; the model only summarises.
+    for (final task in selected) {
+      if (!_listedTasks.any((t) => t.id == task.id)) _listedTasks.add(task);
+    }
     return {
       'today': _date(now),
+      'shown_to_user_as_cards': true,
       'tasks': [
-        for (final t in selected.take(_maxListedTasks))
+        for (final t in selected)
           {
             'title': t.title,
             'due': t.dueAt == null ? '' : _date(t.dueAt!),
@@ -159,11 +206,32 @@ final class AssistantToolbox {
   /// no date was given (or the date has passed).
   static const reminderHour = 9;
 
-  DateTime _reminderTime(DateTime? due) {
+  static final _hhmm = RegExp(r'^\d{1,2}:\d{2}$');
+
+  /// The reminder time, computed by the app rather than the model, in order
+  /// of trust: the user's own words, then the model's structured fields,
+  /// then [reminderHour] on the due day. Also returns whether it is relative.
+  (DateTime?, bool) _reminderFor(Map<String, Object?> args, DateTime? due) {
     final now = _clock.now();
+    if (ReminderTimeParser.relativeDelay(_question) case final delay?) {
+      return (now.add(delay), true);
+    }
+    if (ReminderTimeParser.clockTime(_question, now: now, day: due) case final at?) {
+      return (at, false);
+    }
+    final minutes = args['remind_in_minutes'];
+    if (minutes is num && minutes > 0) {
+      return (now.add(Duration(minutes: minutes.round())), true);
+    }
+    final time = _string(args['remind_time']);
+    if (_hhmm.hasMatch(time)) {
+      final at = ReminderTimeParser.clockTime('at $time', now: now, day: due);
+      if (at != null) return (at, false);
+    }
+    if (args['remind'] != true) return (null, false);
     final day = due ?? now.add(const Duration(days: 1));
     final at = DateTime(day.year, day.month, day.day, reminderHour);
-    return at.isAfter(now) ? at : DateTime(now.year, now.month, now.day + 1, reminderHour);
+    return (at.isAfter(now) ? at : DateTime(now.year, now.month, now.day + 1, reminderHour), false);
   }
 
   static String _string(Object? value) => value is String ? value.trim() : '';

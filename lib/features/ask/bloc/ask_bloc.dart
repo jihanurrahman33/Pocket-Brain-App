@@ -8,8 +8,10 @@ import '../../../domain/entities/ask.dart';
 import '../../../domain/entities/conversation.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/memory_collection.dart';
+import '../../../domain/entities/task_item.dart';
 import '../../../domain/usecases/ask/ask_usecases.dart';
 import '../../../domain/usecases/collections/collection_usecases.dart';
+import '../../../domain/usecases/tasks/task_usecases.dart';
 
 part 'ask_event.dart';
 part 'ask_state.dart';
@@ -26,7 +28,9 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     required GetCollections getCollections,
     required ConfirmAssistantAction confirmAction,
     required DismissAssistantAction dismissAction,
+    required ToggleTaskDone toggleTask,
   }) : _askBrain = askBrain,
+       _toggleTask = toggleTask,
        _confirmAction = confirmAction,
        _dismissAction = dismissAction,
        _getConversations = getConversations,
@@ -50,6 +54,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
   final GetCollections _getCollections;
   final ConfirmAssistantAction _confirmAction;
   final DismissAssistantAction _dismissAction;
+  final ToggleTaskDone _toggleTask;
   bool _stopRequested = false;
 
   Future<void> _dispatch(AskEvent event, Emitter<AskState> emit) => switch (event) {
@@ -59,6 +64,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     AskConversationDeleted(:final conversationId) => _onConversationDeleted(conversationId, emit),
     AskQuestionSubmitted(:final question) => _onQuestionSubmitted(question, emit),
     AskRegenerateRequested() => _onRegenerate(emit),
+    AskTaskToggled(:final task) => _onTaskToggled(task, emit),
     AskActionDecided(:final messageId, :final actionId, :final confirmed) => _onActionDecided(
       messageId,
       actionId,
@@ -88,6 +94,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
           collectionId: () => conversation.collectionId,
           messages: t.messages,
           sources: t.sources,
+          tasks: t.tasks,
           failure: () => null,
         ),
       ),
@@ -103,6 +110,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
         collectionId: () => collectionId,
         messages: const [],
         sources: const {},
+        tasks: const {},
         streamingText: () => null,
         failure: () => null,
       ),
@@ -162,6 +170,22 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     );
   }
 
+  /// Ticks a task off (or back on) straight from an answer's task card.
+  Future<void> _onTaskToggled(TaskItem task, Emitter<AskState> emit) async {
+    final result = await _toggleTask(task);
+    result.fold(
+      onSuccess: (_) => emit(
+        state.copyWith(
+          tasks: {
+            ...state.tasks,
+            task.id: task.copyWith(isDone: !task.isDone),
+          },
+        ),
+      ),
+      onFailure: (f) => emit(state.copyWith(failure: () => f)),
+    );
+  }
+
   /// Carries out (or declines) a change the assistant proposed.
   Future<void> _onActionDecided(
     String messageId,
@@ -210,6 +234,9 @@ class AskBloc extends Bloc<AskEvent, AskState> {
       sources: {...state.sources, for (final m in sources) m.id: m},
     ),
     AskAnswerUpdated(:final text) => state.copyWith(streamingText: () => text),
+    AskTasksFound(:final tasks) => state.copyWith(
+      tasks: {...state.tasks, for (final t in tasks) t.id: t},
+    ),
     AskAnswerCompleted(:final message) => state.copyWith(
       phase: AskPhase.idle,
       streamingText: () => null,

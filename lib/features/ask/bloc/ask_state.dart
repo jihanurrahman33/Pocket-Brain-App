@@ -10,6 +10,7 @@ class AskState extends Equatable {
     this.collections = const [],
     this.messages = const [],
     this.sources = const {},
+    this.tasks = const {},
     this.phase = AskPhase.idle,
     this.streamingText,
     this.suggestions = const [],
@@ -28,6 +29,9 @@ class AskState extends Equatable {
 
   /// Memories cited anywhere in this conversation, by id.
   final Map<String, Memory> sources;
+
+  /// Tasks shown as cards in answers, by id.
+  final Map<String, TaskItem> tasks;
   final AskPhase phase;
 
   /// The answer being generated right now.
@@ -43,6 +47,8 @@ class AskState extends Equatable {
 
   List<Memory> sourcesOf(ChatMessage message) => [for (final id in message.sourceIds) ?sources[id]];
 
+  List<TaskItem> tasksOf(ChatMessage message) => [for (final id in message.taskIds) ?tasks[id]];
+
   AskState copyWith({
     List<Conversation>? conversations,
     Conversation? Function()? conversation,
@@ -50,6 +56,7 @@ class AskState extends Equatable {
     List<MemoryCollection>? collections,
     List<ChatMessage>? messages,
     Map<String, Memory>? sources,
+    Map<String, TaskItem>? tasks,
     AskPhase? phase,
     String? Function()? streamingText,
     List<String>? suggestions,
@@ -61,6 +68,7 @@ class AskState extends Equatable {
     collections: collections ?? this.collections,
     messages: messages ?? this.messages,
     sources: sources ?? this.sources,
+    tasks: tasks ?? this.tasks,
     phase: phase ?? this.phase,
     streamingText: streamingText != null ? streamingText() : this.streamingText,
     suggestions: suggestions ?? this.suggestions,
@@ -75,6 +83,7 @@ class AskState extends Equatable {
     collections,
     messages,
     sources,
+    tasks,
     phase,
     streamingText,
     suggestions,

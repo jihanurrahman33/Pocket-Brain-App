@@ -98,7 +98,7 @@ void main() {
       AnswerPrompt(question: 'Remind me next Friday', sources: const [], today: testNow),
       withTools: true,
     );
-    expect(request.prompt, contains('TODAY: Friday 2026-11-13'));
+    expect(request.prompt, contains('NOW: Friday 2026-11-13 10:00'));
     expect(request.prompt, contains('Fri 2026-11-20'));
     expect(request.prompt, contains('Sat 2026-11-14'));
   });

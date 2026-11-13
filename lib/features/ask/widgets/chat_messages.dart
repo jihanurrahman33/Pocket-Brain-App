@@ -9,10 +9,12 @@ import '../../../core/widgets/feedback_widgets.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/conversation.dart';
 import '../../../domain/entities/memory.dart';
+import '../../../domain/entities/task_item.dart';
 import '../../model_manager/widgets/model_setup_banner.dart';
 import '../../shared/widgets/memory_views.dart';
 import '../bloc/ask_bloc.dart';
 import 'action_card.dart';
+import 'task_result_cards.dart';
 
 class AskWelcome extends StatelessWidget {
   const AskWelcome({super.key, required this.state});
@@ -82,6 +84,7 @@ class ChatMessageList extends StatelessWidget {
               : _AnswerBlock(
                   message: message,
                   sources: state.sourcesOf(message),
+                  tasks: state.tasksOf(message),
                   canRegenerate: i == lastIndex && !state.isAnswering,
                 ),
         if (state.streamingText != null) _StreamingAnswer(state: state),
@@ -124,10 +127,18 @@ class _UserBubble extends StatelessWidget {
 }
 
 class _AnswerBlock extends StatelessWidget {
-  const _AnswerBlock({required this.message, required this.sources, required this.canRegenerate});
+  const _AnswerBlock({
+    required this.message,
+    required this.sources,
+    required this.tasks,
+    required this.canRegenerate,
+  });
 
   final ChatMessage message;
   final List<Memory> sources;
+
+  /// Tasks the answer is about, drawn as interactive cards.
+  final List<TaskItem> tasks;
   final bool canRegenerate;
 
   static const _actionIconSize = 18.0;
@@ -141,6 +152,11 @@ class _AnswerBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SelectableText(message.text, style: theme.textTheme.bodyLarge),
+          if (tasks.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: TaskResultCards(tasks: tasks),
+            ),
           for (final action in message.actions)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.md),
