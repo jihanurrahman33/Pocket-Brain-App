@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest an idea for Pocket Brain
+labels: [enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Check the [roadmap](https://github.com/jihanurrahman33/Pocket-Brain-App/blob/main/docs/product.md) first — it may already be planned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what makes it hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: This feature keeps user memories on the device.
+          required: true

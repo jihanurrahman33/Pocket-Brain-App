@@ -1,94 +1,113 @@
-# Pocket Brain
+<div align="center">
 
-A personal memory companion: save anything, find it later, and ask questions
-about what you saved. All AI runs **on-device** with Gemma 4 E2B via
-[`flutter_edge_ai_litertlm`](https://pub.dev/packages/flutter_edge_ai_litertlm);
-memories never leave the device.
+# 🧠 Pocket Brain
 
-## Run
+**A private, on-device AI memory companion.**
+Save anything, forget it safely, and find it again by asking.
+
+[![CI](https://github.com/jihanurrahman33/Pocket-Brain-App/actions/workflows/ci.yml/badge.svg)](https://github.com/jihanurrahman33/Pocket-Brain-App/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Flutter](https://img.shields.io/badge/Flutter-3.47-02569B?logo=flutter)
+![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Android-informational)
+
+</div>
+
+---
+
+Pocket Brain is a Flutter app for saving notes, ideas and links, and getting
+them back later — by keyword, by meaning, or by asking a question in plain
+language. The AI (Google's **Gemma 4 E2B**) runs **entirely on your device**
+through [LiteRT-LM](https://pub.dev/packages/flutter_edge_ai_litertlm). There
+is no account, no server and no sync: your memories never leave the device.
+
+## Features
+
+| | |
+|---|---|
+| **Smart capture** | Write a note, paste a link (the page is summarised) or paste from the clipboard. AI suggests a title, summary, category, tags and tasks — you review and edit everything before saving. |
+| **Ask Brain** | Ask questions like *"What was that React project idea I saved?"* Answers use **only** your memories, cite them with clickable source cards, and say *"I couldn't find that"* instead of inventing. |
+| **Smart search** | Exact keyword search or semantic search by meaning, with filters for category, type and date. |
+| **Smart recall** | Daily digest, weekly recap, "on this day", and forgotten memories worth revisiting. |
+| **Organisation** | Collections, categories, tags, favourites, archive, related memories and duplicate detection. |
+| **Tasks** | Deadlines found in your notes become suggested tasks; confirmed tasks link back to their memory. |
+| **Privacy** | Local SQLite storage, JSON export, one-tap wipe, AI suggestions can be switched off. |
+| **Responsive** | Bottom navigation on phones, navigation rail and two-pane layouts on tablets and desktop. |
+
+The app works without downloading any model (offline rules and keyword
+search); downloading Gemma unlocks the AI features.
+
+## Quick start
+
+Requirements: Flutter **3.47+**. For Linux desktop also `clang`, `cmake`,
+`ninja-build`, `pkg-config` and `libgtk-3-dev`.
 
 ```bash
+git clone https://github.com/jihanurrahman33/Pocket-Brain-App.git
+cd Pocket-Brain-App
 flutter pub get
-flutter run -d linux     # or: flutter run -d android
-flutter test
+flutter run -d linux      # or: flutter run -d <android-device-id>
 ```
 
-The app works without any model (offline rules for suggestions, keyword
-search). For AI features open **Settings → AI models** and download:
+Then open **Settings → AI models** to download:
 
-| Model | Size | Used for |
+| Model | Size | Enables |
 |---|---|---|
 | Gemma 4 E2B | 2.6 GB | Summaries, tags, task extraction, Ask Brain, weekly recap |
 | EmbeddingGemma 2 Text 270M | 165 MB | Semantic search, related memories, duplicate detection |
 
-Gemma 4 E2B is the lightest Gemma 4 model and targets phones with 4–6 GB RAM.
+Gemma 4 E2B is the lightest Gemma 4 model and is designed for phones with
+4–6 GB of RAM. See [docs/ai-models.md](docs/ai-models.md) for hardware notes.
 
-## Architecture
+## Development
 
-Clean Architecture with three layers; dependencies point inwards only.
-
-```
-lib/
-├── core/        Cross-cutting: Result/Failure, UseCase contract, Clock, IdGenerator,
-│                logging, responsive system, theme, shared widgets
-├── domain/      Pure Dart — no Flutter, no packages with I/O
-│   ├── entities/      Memory, TaskItem, Conversation, CaptureDraft, …
-│   ├── repositories/  Interfaces (MemoryRepository, ModelRepository, …)
-│   ├── services/      AI ports (MemoryAnalyzer, AnswerGenerator, TextEmbedder, …)
-│   │                  and ranking strategies (RelevanceScorer)
-│   └── usecases/      One class per operation (AskBrain, SaveCapture, SearchMemories, …)
-├── data/        Implementations of the domain interfaces
-│   ├── datasources/   SQLite database; OnDeviceAiRuntime port + LiteRT adapter
-│   ├── mappers/       Row ↔ entity and export JSON mapping
-│   ├── repositories/  Sqlite*, SharedPrefs*, OnDeviceModelRepository, …
-│   └── services/      Gemma / rule-based analyzers, prompts, parsers, link reader
-├── features/    Presentation, one folder per screen: bloc/ view/ widgets/
-└── app/         Composition root (get_it), router, adaptive shell
+```bash
+flutter analyze                             # strict lints, must be clean
+dart format --set-exit-if-changed lib test  # formatting
+flutter test                                # unit, bloc, widget, layout and architecture tests
 ```
 
-### Principles applied
+| Document | What it covers |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Layers, dependency rules, design patterns, data flow |
+| [docs/development.md](docs/development.md) | Setup, running, testing, adding a feature, troubleshooting |
+| [docs/ai-models.md](docs/ai-models.md) | On-device models, prompts, grounding rules, hardware |
+| [docs/responsive-design.md](docs/responsive-design.md) | Window size classes and adaptive layouts |
+| [docs/product.md](docs/product.md) | Product vision, screens and roadmap |
+| [AGENTS.md](AGENTS.md) | Instructions for AI coding agents working in this repo |
 
-- **Single Responsibility** — each use case does one thing; prompts, parsing,
-  date parsing and HTML extraction are separate classes.
-- **Open/Closed** — search modes are `RelevanceScorer` strategies;
-  `WipeAllData` clears any list of `Clearable` stores.
-- **Liskov** — Gemma, rule-based and fallback analyzers are interchangeable
-  `MemoryAnalyzer`s.
-- **Interface Segregation** — small ports (`MemoryRepository` vs
-  `MemoryMetadataStore`, `AnswerGenerator` vs `TextEmbedder`).
-- **Dependency Inversion** — blocs depend on use cases, use cases on
-  interfaces; only `app/di/injection.dart` knows concrete classes.
+## Architecture at a glance
 
-### Design patterns
+Clean Architecture with BLoC state management:
 
-Repository · Use Case (Command) · Strategy (relevance scoring) · Decorator /
-Chain of Responsibility (`FallbackMemoryAnalyzer`, `FallbackRecapWriter`) ·
-Adapter (`LiteRtAiRuntime`) · Mapper · Observer (repository change streams,
-`AskProgress` events) · Template Method (`AutoRefreshCubit`, memory commands) ·
-State (sealed bloc states) · Result type for errors · Service Locator /
-Composition Root (get_it) · Parameter Object.
+```
+features/ (BLoC + widgets) ──▶ domain/usecases ──▶ domain/repositories & services (interfaces)
+                                                          ▲
+                                     data/ (SQLite, LiteRT-LM, HTTP) implements them
+app/di/injection.dart is the only place that wires concrete classes together.
+```
 
-### State management
+The domain layer is pure Dart. Layer rules are enforced by tests in
+`test/architecture/`. Details in [docs/architecture.md](docs/architecture.md).
 
-BLoC (`flutter_bloc`). Sealed events and states, `bloc_concurrency`
-transformers (droppable submits, restartable/debounced search), and an
-`AutoRefreshCubit` base that reloads when data changes.
+## Roadmap
 
-### Responsive design
+- [x] Capture (notes, links, clipboard), AI review, collections, tasks
+- [x] Ask Brain with citations, semantic search, digest and recall
+- [ ] Voice capture, image/screenshot understanding, PDF import
+- [ ] System notifications for reminders
+- [ ] Share-to-app on Android, biometric app lock
+- [ ] Optional encrypted backup
 
-Material 3 window size classes (`core/responsive/window_size.dart`):
+See [docs/product.md](docs/product.md) and the
+[issue tracker](https://github.com/jihanurrahman33/Pocket-Brain-App/issues).
 
-| Width | Class | Navigation | Layout |
-|---|---|---|---|
-| < 600 | compact | bottom bar | single column, full-screen forms |
-| 600–839 | medium | rail with labels | single column, wider padding |
-| 840–1199 | expanded | rail with labels | two panes (content + side panel) |
-| ≥ 1200 | large | extended rail | two panes, persistent chat history |
+## Contributing
 
-`test/responsive/` renders every screen at 320 px, 390 px, 800 px, 1024 px
-and 1440 px wide and fails on any overflow.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and
+our [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: see
+[SECURITY.md](SECURITY.md).
 
-## Privacy
+## License
 
-Local SQLite storage, no accounts, no sync. Export everything as JSON or wipe
-all data from Settings. Link capture fetches only the URL you save.
+[MIT](LICENSE). Gemma models are provided under their own terms; see
+[docs/ai-models.md](docs/ai-models.md#licences).

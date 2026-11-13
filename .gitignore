@@ -49,3 +49,17 @@ app.*.map.json
 
 # Local editor settings (machine-specific paths)
 .vscode/
+
+# Never commit models, exports or local databases (they hold personal data)
+*.litertlm
+*.tflite
+*.task
+pocket_brain_export_*.json
+*.db
+*.db-journal
+
+# Secrets
+.env
+*.keystore
+*.jks
+key.properties

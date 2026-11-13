@@ -1,0 +1,61 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **do not include personal notes or memories** in this issue.
+        For security problems, use [private reporting](https://github.com/jihanurrahman33/Pocket-Brain-App/security/advisories/new) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Capture
+        2. Paste a link
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Linux desktop, Android, Other]
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: AI model state
+      options:
+        - No model downloaded
+        - Gemma 4 E2B downloaded
+        - Gemma 4 E2B + EmbeddingGemma downloaded
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Compute backend
+      options: [CPU, GPU, Not sure]
+  - type: input
+    id: device
+    attributes:
+      label: Device / OS and RAM
+      placeholder: e.g. Ubuntu 26.04, 8 GB RAM / Pixel 8, Android 16
+  - type: input
+    id: version
+    attributes:
+      label: App version or commit
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output from `flutter run` (remove any personal content).
+      render: shell
