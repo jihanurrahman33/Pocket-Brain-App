@@ -21,6 +21,20 @@ flutter run -d linux                        # run the app
 
 Run all three checks (analyze, format, test) before declaring work done.
 
+### Live development with the Dart & Flutter MCP server
+
+Agents that support MCP should use the official Dart and Flutter MCP server
+(`dart mcp-server`). For Claude Code, install the plugin:
+
+```bash
+claude plugin marketplace add flutter/agent-plugins
+claude plugin install dart-flutter@dart-flutter
+```
+
+With the app running (`flutter run -d linux`), connect via the `dtd` tool and
+hot reload after UI edits / hot restart after changes to `main()`, DI or
+initial state, as described in [CLAUDE.md](CLAUDE.md#proactive-flutter-hot-reload).
+
 ## Architecture rules (enforced by `test/architecture/layer_rules_test.dart`)
 
 ```

@@ -3,9 +3,9 @@
 ## Prerequisites
 
 - Flutter **3.47+** (Dart 3.13+)
-- **Linux desktop:** `clang cmake ninja-build pkg-config libgtk-3-dev`
+- **Linux desktop** (per the [Flutter Linux setup](https://docs.flutter.dev/platform-integration/linux/setup)):
   ```bash
-  sudo apt install clang cmake ninja-build pkg-config libgtk-3-dev
+  sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev
   ```
 - **Android:** Android SDK with a device or emulator on API 30+ (required by
   LiteRT-LM). A physical device with 6 GB+ RAM is recommended for Gemma.
@@ -13,6 +13,20 @@
 The first build downloads LiteRT-LM native libraries through a Dart build
 hook (cached under `~/.cache/flutter_gemma/native/`). Log lines prefixed
 `ERROR: flutter_edge_ai:` during that step are informational.
+
+## AI coding agents (optional)
+
+The official [Dart and Flutter MCP server](https://docs.flutter.dev/ai/get-started)
+lets agents analyze code, run tests and hot reload the running app. For
+Claude Code:
+
+```bash
+claude plugin marketplace add flutter/agent-plugins
+claude plugin install dart-flutter@dart-flutter
+```
+
+Other agents: see the Flutter docs page above. Project rules for agents are
+in [AGENTS.md](../AGENTS.md) and [CLAUDE.md](../CLAUDE.md).
 
 ## Run
 
