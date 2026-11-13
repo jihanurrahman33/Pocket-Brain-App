@@ -142,6 +142,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     final intent = IntentRouter.classify(question, allTasks);
     if (intent is! MemoryQuestionIntent) {
       final handled = await _answerTaskIntent((
+        question: question,
         intent: intent,
         allTasks: allTasks,
         language: LanguageDetector.detect(question),
@@ -152,6 +153,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
         ChatRole.assistant,
         handled.text,
         taskIds: [for (final t in handled.tasks) t.id],
+        actions: handled.actions,
       );
       await _conversations.saveMessage(reply);
       yield AskAnswerCompleted(reply);

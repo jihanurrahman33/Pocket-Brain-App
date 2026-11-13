@@ -73,7 +73,8 @@ previous model answering; afterwards the old file is uninstalled.
 Most reliability comes from **not asking the model to decide** things rules
 can decide: task completion and task questions (`IntentRouter`,
 `AnswerTaskIntent`), reminder times (`ReminderTimeParser`), task summaries
-(`TaskSummary`) and grounding are all deterministic and tested.
+(`TaskSummary`), plan statements → proposed tasks (`PlanTaskIntent`,
+`DueDateParser`) and grounding are all deterministic and tested.
 
 ### Hardware guidance
 

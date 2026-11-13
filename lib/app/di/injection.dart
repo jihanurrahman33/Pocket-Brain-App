@@ -264,7 +264,7 @@ void _registerUseCases() {
         generator: sl(),
         rewriter: sl(),
         tasks: sl(),
-        answerTaskIntent: AnswerTaskIntent(sl(), sl()),
+        answerTaskIntent: AnswerTaskIntent(sl(), sl(), sl()),
         ids: sl(),
         clock: sl(),
       ),

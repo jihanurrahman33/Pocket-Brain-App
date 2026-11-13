@@ -1,4 +1,6 @@
 import '../entities/task_item.dart';
+import 'due_date_parser.dart';
+import 'reminder_time_parser.dart';
 
 /// What the user wants from an Ask Brain message, decided deterministically
 /// before any retrieval or model call. A small model is unreliable at this
@@ -25,6 +27,15 @@ final class QueryTasksIntent extends AskIntent {
 
   /// One of `open`, `overdue`, `done`.
   final String filter;
+}
+
+/// "I want to sing a song tomorrow", "I need to call mum": a plan, offered
+/// as a task the user confirms.
+final class PlanTaskIntent extends AskIntent {
+  const PlanTaskIntent(this.title);
+
+  /// What to do, without the "I want to" and the day ("Sing a song").
+  final String title;
 }
 
 /// Anything else: answered from memories (and the model's tools).
@@ -158,7 +169,24 @@ abstract final class IntentRouter {
     'ti',
   };
 
+  /// "I want to …", "I'm going to …", "tomorrow I have to …".
+  static final _plan = RegExp(
+    r'^\s*(?:(?:today|tonight|tomorrow|on \w+day|\w+day)\s*,?\s+)?'
+    r"(?:i'?ll|(?:i|i'm|im|i am)\s+(?:really\s+|also\s+)?"
+    r'(?:want to|wanna|need to|have to|has to|got to|gotta|must|should|will|'
+    r'am going to|going to|gonna|plan to|would like to|intend to))\s+(.+)$',
+    caseSensitive: false,
+  );
+
+  /// Wanting to *know* something is a question, not a plan.
+  static final _notAPlan = RegExp(
+    r'^(know|see|find|ask|check|understand|remember|recall|look up|search|learn what|'
+    r'be|feel|die|sleep now)\b',
+    caseSensitive: false,
+  );
+
   static const _shortMessageWords = 3;
+  static const _maxPlanTitle = 80;
 
   /// Minimum share of a task's title words found in the message.
   static const matchThreshold = 0.6;
@@ -190,7 +218,29 @@ abstract final class IntentRouter {
     if (mentionsTasks && !_createWords.hasMatch(text) && (isQuestion || short)) {
       return QueryTasksIntent(_filterFor(text));
     }
+
+    // "Remind me…" / "add a task…" stay with the model, which fills in
+    // reminder details; a plain plan becomes a proposed task here.
+    if (!isQuestion && !_createWords.hasMatch(text)) {
+      if (planTitle(text) case final title?) return PlanTaskIntent(title);
+    }
     return const MemoryQuestionIntent();
+  }
+
+  /// The task in a plan statement, or null when [text] is not one.
+  static String? planTitle(String text) {
+    final what = _plan.firstMatch(text)?[1];
+    if (what == null || _notAPlan.hasMatch(what.trim())) return null;
+    final title = what
+        .replaceAll(DueDateParser.phrase, ' ')
+        .replaceAll(ReminderTimeParser.phrases, ' ')
+        .replaceAll(RegExp(r'\b(please|pls)\b', caseSensitive: false), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'^[\s,]+|[\s,.!]+$'), '')
+        .trim();
+    if (title.isEmpty || title.split(' ').length > 12) return null;
+    final capped = title.length > _maxPlanTitle ? title.substring(0, _maxPlanTitle) : title;
+    return capped[0].toUpperCase() + capped.substring(1);
   }
 
   static String _filterFor(String text) {

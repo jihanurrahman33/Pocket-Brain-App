@@ -21,6 +21,12 @@ abstract final class ReminderTimeParser {
     caseSensitive: false,
   );
 
+  /// Every time phrase this parser understands, to remove from a title.
+  static final phrases = RegExp(
+    '${_relative.pattern}|${_clock.pattern}|\\b(?:in the )?(?:morning|evening|afternoon|night)\\b',
+    caseSensitive: false,
+  );
+
   static const _words = {
     'a': 1.0,
     'an': 1.0,

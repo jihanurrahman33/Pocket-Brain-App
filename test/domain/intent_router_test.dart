@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_brain/domain/entities/task_item.dart';
+import 'package:pocket_brain/domain/services/due_date_parser.dart';
 import 'package:pocket_brain/domain/services/intent_router.dart';
 
 import '../helpers/fakes.dart';
@@ -93,5 +94,53 @@ void main() {
     ]) {
       test('"$message"', () => expect(classify(message), isA<MemoryQuestionIntent>()));
     }
+  });
+
+  // Regression (real use): "i want to sing a song tomorrow" got "I couldn't
+  // find that in your saved memories".
+  group('plans become proposed tasks', () {
+    for (final (message, title) in [
+      ('i want to sing a song tomorrow', 'Sing a song'),
+      ('I need to buy eggs', 'Buy eggs'),
+      ("I'm going to visit grandma on Friday", 'Visit grandma'),
+      ("I'll pay the electricity bill tonight", 'Pay the electricity bill'),
+      ('tomorrow I have to submit the assignment', 'Submit the assignment'),
+      ('I have to call the bank at 5 pm', 'Call the bank'),
+      ('i gotta clean my room please', 'Clean my room'),
+    ]) {
+      test('"$message" → "$title"', () {
+        final intent = classify(message);
+        expect(intent, isA<PlanTaskIntent>(), reason: message);
+        expect((intent as PlanTaskIntent).title, title);
+      });
+    }
+
+    for (final message in [
+      'I want to know what I saved about RAG', // a question in disguise
+      'what do I need to do tomorrow?',
+      'remind me after 5 minutes that i have to drink water', // model fills reminder
+      'I want to be happy',
+      'I finished the quarterly report',
+    ]) {
+      test('"$message" is not a plan', () {
+        expect(classify(message), isNot(isA<PlanTaskIntent>()));
+      });
+    }
+  });
+
+  group('DueDateParser', () {
+    final now = DateTime(2026, 11, 14, 22, 30); // a Saturday
+    for (final (text, day) in [
+      ('sing tomorrow', DateTime(2026, 11, 15)),
+      ('tonight', DateTime(2026, 11, 14)),
+      ('day after tomorrow', DateTime(2026, 11, 16)),
+      ('on Friday', DateTime(2026, 11, 20)),
+      ('next monday', DateTime(2026, 11, 16)),
+      ('saturday', DateTime(2026, 11, 21)), // today is Saturday → next week
+      ('kal gaan gaibo', DateTime(2026, 11, 15)),
+    ]) {
+      test('"$text"', () => expect(DueDateParser.parse(text, now: now), day));
+    }
+    test('no day named', () => expect(DueDateParser.parse('sing a song', now: now), isNull));
   });
 }

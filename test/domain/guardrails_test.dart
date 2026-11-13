@@ -225,6 +225,27 @@ void main() {
         expect(events.whereType<AskTasksFound>().single.tasks, hasLength(2));
       });
 
+      test('"i want to sing a song tomorrow" proposes a task for tomorrow', () async {
+        final events = await say('i want to sing a song tomorrow');
+        final answer = events.whereType<AskAnswerCompleted>().single.message;
+        expect(answer.text, 'Add "Sing a song" for tomorrow to your tasks? Confirm below.');
+        final action = answer.actions.single;
+        expect(action.args['title'], 'Sing a song');
+        expect(action.args['due'], '2026-11-14'); // test clock: 13 Nov
+        expect(answer.sourceIds, isEmpty);
+        expect(ai.requests, isEmpty, reason: 'decided without the model');
+        final board = (await sl<GetTaskBoard>()(const NoParams())).valueOrNull!;
+        expect(board.anytime + board.upcoming + board.overdue, isEmpty, reason: 'only on Confirm');
+      });
+
+      test('a plan already on the list is not added twice', () async {
+        await sl<AddTask>()(const NewTask(title: 'buy eggs'));
+        final events = await say('I need to buy eggs');
+        final answer = events.whereType<AskAnswerCompleted>().single.message;
+        expect(answer.text, '"buy eggs" is already on your list.');
+        expect(answer.actions, isEmpty);
+      });
+
       test('intentions never complete a task', () async {
         await sl<AddTask>()(const NewTask(title: 'drink water'));
         await say('I need to drink water later');

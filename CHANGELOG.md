@@ -35,6 +35,10 @@ uses [Semantic Versioning](https://semver.org/).
   named — decided by tested rules, not by the model. The task appears as a
   card that can be unticked to undo; unclear messages ask which task, and
   intentions ("I need to…") never complete anything.
+- **Plans become tasks**: "I want to sing a song tomorrow", "I need to buy
+  eggs", "I'll pay the bill tonight" offer a task card (with the right day)
+  to confirm, instead of "couldn't find that". A plan already on the list
+  is pointed out rather than added twice.
 - **Higher-quality AI option** on devices with 8 GB of RAM or more
   (Settings → AI quality). The standard AI stays the default for 4–6 GB
   phones. Switching downloads in the background (resumable) while the
