@@ -9,7 +9,7 @@ import '../../../core/widgets/feedback_widgets.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/ai_model.dart';
 import '../../model_manager/bloc/model_bloc.dart';
-import '../../model_manager/widgets/model_card.dart';
+import '../../model_manager/widgets/ai_pack_card.dart';
 import '../bloc/settings_cubit.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -36,21 +36,16 @@ class _ModelSettings extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader('AI models'),
-          Text(
-            'Models run fully offline after download. Your memories are never uploaded.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const Gap.md(),
-          for (final slot in state.slots.values) ...[ModelCard(slot: slot), const Gap.sm()],
+          const SectionHeader('On-device AI'),
+          const AiPackCard(),
+          const SectionHeader('Advanced'),
           Card(
             child: Column(
               children: [
                 const ListTile(
-                  title: Text('Compute backend'),
+                  title: Text('Processing'),
                   subtitle: Text(
-                    'CPU works everywhere. GPU (Vulkan on Linux, OpenCL on Android) '
-                    'is faster when supported.',
+                    'CPU works on every device. GPU is faster where your device supports it.',
                   ),
                 ),
                 Padding(
@@ -73,7 +68,7 @@ class _ModelSettings extends StatelessWidget {
                   ),
                 ),
                 ListTile(
-                  title: const Text('Model storage'),
+                  title: const Text('AI storage used'),
                   subtitle: Text(Formatters.bytes(state.storageBytes)),
                   trailing: TextButton(
                     onPressed: () => bloc.add(const ModelUnloadRequested()),
@@ -181,7 +176,7 @@ class _AboutSection extends StatelessWidget {
           title: Text('Pocket Brain'),
           subtitle: Text(
             'Your personal memory companion. Save anything and find it later, '
-            'powered by Gemma running on your device.',
+            'powered by AI that runs entirely on your device.',
           ),
         ),
       ),

@@ -36,7 +36,7 @@ personal, not like a complicated note-taking app.
 | Collection | Memories in a collection, search inside, ask about the collection |
 | Daily digest | Today, topics this week, open tasks, on this day, worth revisiting, AI recap |
 | Tasks & reminders | Overdue, upcoming, anytime, completed; linked back to memories |
-| Settings | Model manager, compute backend, storage, privacy, export, wipe |
+| Settings | One "Pocket Brain AI" setup card (no model names), processing (CPU/GPU), storage, privacy, export, wipe |
 
 ## Status and roadmap
 

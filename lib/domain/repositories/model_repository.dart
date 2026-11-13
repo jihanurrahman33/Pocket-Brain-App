@@ -1,30 +1,27 @@
 import '../../core/error/result.dart';
 import '../entities/ai_model.dart';
 
-/// Downloads, removes and manages the on-device models.
+/// Installs and manages the on-device AI pack as a single unit.
 abstract interface class ModelRepository {
-  List<AiModelInfo> get available;
+  AiPackStatus status();
 
-  AiModelStatus status(AiModelKind kind);
-
-  /// Downloads (or re-activates) a model.
+  /// Downloads every missing part of the pack, one after another.
   ///
-  /// [onProgress] receives values in [0, 1]. Completes with a failure if
-  /// the download fails or is cancelled via [cancelInstall].
-  Future<Result<void>> install(
-    AiModelKind kind, {
-    required void Function(double progress) onProgress,
-  });
+  /// [onProgress] receives overall progress in [0, 1] across all parts.
+  /// Completes with a failure if a download fails or [cancelInstall] is
+  /// called; parts that finished stay installed, so a retry resumes.
+  Future<Result<void>> install({required void Function(double progress) onProgress});
 
-  void cancelInstall(AiModelKind kind);
+  void cancelInstall();
 
-  Future<Result<void>> uninstall(AiModelKind kind);
+  /// Removes every part of the pack.
+  Future<Result<void>> uninstall();
 
-  /// Frees memory; models reload on next use.
+  /// Frees memory; the AI reloads on next use.
   Future<void> unloadAll();
 
   Future<void> useBackend(ComputeBackend backend);
 
-  /// Bytes used by model files on disk.
+  /// Bytes used by AI files on disk.
   Future<int> storageBytes();
 }

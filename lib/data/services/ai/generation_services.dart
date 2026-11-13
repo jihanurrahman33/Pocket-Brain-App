@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import '../../../core/logging/app_logger.dart';
 import '../../../core/utils/text_utils.dart';
-import '../../../domain/entities/ai_model.dart';
 import '../../../domain/entities/ask.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/services/ai_services.dart';

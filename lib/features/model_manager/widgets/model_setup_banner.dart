@@ -5,22 +5,23 @@ import 'package:go_router/go_router.dart';
 import '../../../core/formatting/formatters.dart';
 import '../../../core/navigation/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/section_header.dart';
 import '../bloc/model_bloc.dart';
+import 'ai_pack_card.dart';
 
-/// Invites the user to download Gemma; hidden once it is installed.
+/// Invites the user to set up Pocket Brain AI; hidden once it is ready.
 class ModelSetupBanner extends StatelessWidget {
   const ModelSetupBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ModelBloc, ModelState>(
-      buildWhen: (a, b) => a.languageModel != b.languageModel,
       builder: (context, state) {
-        final slot = state.languageModel;
-        if (slot == null || slot.isInstalled) return const SizedBox.shrink();
+        final pack = state.pack;
+        if (pack == null || pack.isInstalled) return const SizedBox.shrink();
         final theme = Theme.of(context);
         final scheme = theme.colorScheme;
-        final percent = ((slot.progress ?? 0) * 100).round();
+        final progress = state.progress;
         return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: Card(
@@ -33,26 +34,26 @@ class ModelSetupBanner extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.memory_rounded, color: scheme.onSecondaryContainer),
+                      Icon(Icons.psychology_rounded, color: scheme.onSecondaryContainer),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              slot.isDownloading
-                                  ? 'Downloading ${slot.info.name}… $percent%'
-                                  : 'Enable on-device AI',
+                              progress == null
+                                  ? 'Turn on $kAiPackName'
+                                  : 'Setting up $kAiPackName… ${(progress * 100).round()}%',
                               style: theme.textTheme.titleSmall,
                             ),
-                            const SizedBox(height: AppSpacing.xs),
-                            if (slot.isDownloading)
-                              LinearProgressIndicator(value: slot.progress)
+                            const Gap.xs(),
+                            if (progress != null)
+                              LinearProgressIndicator(value: progress == 0 ? null : progress)
                             else
                               Text(
-                                'Download ${slot.info.name} '
-                                '(${Formatters.bytes(slot.info.sizeBytes)}) for summaries '
-                                'and Ask Brain. Your memories never leave this device.',
+                                'A one-time ${Formatters.bytes(pack.remainingBytes)} download '
+                                'for summaries, smart search and Ask Brain. Runs privately '
+                                'on this device.',
                                 style: theme.textTheme.bodySmall,
                               ),
                           ],
@@ -60,11 +61,11 @@ class ModelSetupBanner extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (!slot.isDownloading) ...[
-                    const SizedBox(height: AppSpacing.sm),
+                  if (progress == null) ...[
+                    const Gap.sm(),
                     FilledButton.tonal(
                       onPressed: () => context.push(AppRoutes.settings),
-                      child: const Text('Set up'),
+                      child: Text(pack.isPartiallyInstalled ? 'Finish setup' : 'Set up'),
                     ),
                   ],
                 ],

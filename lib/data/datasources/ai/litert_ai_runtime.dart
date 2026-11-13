@@ -35,19 +35,9 @@ final class LiteRtAiRuntime implements OnDeviceAiRuntime {
   Future<void> _generationQueue = Future.value();
 
   @override
-  List<AiModelInfo> get models => [
-    AiModelInfo(
-      kind: AiModelKind.languageModel,
-      name: 'Gemma 4 E2B',
-      purpose: 'Summaries, tags, task extraction and Ask Brain answers',
-      sizeBytes: _llmVariant.file.sizeBytes,
-    ),
-    AiModelInfo(
-      kind: AiModelKind.embedder,
-      name: 'EmbeddingGemma 2 Text',
-      purpose: 'Semantic search and related memories',
-      sizeBytes: _embedderVariant.model.sizeBytes,
-    ),
+  List<AiComponent> get components => [
+    AiComponent(kind: AiModelKind.languageModel, sizeBytes: _llmVariant.file.sizeBytes),
+    AiComponent(kind: AiModelKind.embedder, sizeBytes: _embedderVariant.model.sizeBytes),
   ];
 
   @override

@@ -5,6 +5,24 @@ All inference runs locally through
 (LiteRT-LM). Models are downloaded once from Hugging Face, pinned to exact
 revisions by the package's model catalog, and verified by size and SHA-256.
 
+## One "Pocket Brain AI" pack
+
+Users never see model names. Settings shows a single **Pocket Brain AI**
+card with one *Set up* button and one progress bar; the Home and Ask
+banners say "Turn on Pocket Brain AI".
+
+- `domain/` only knows `AiPackStatus` (total size, bytes remaining, loaded)
+  and `ModelRepository.install()` for the whole pack.
+- `OnDeviceModelRepository` (data) downloads every **missing** component in
+  order and reports one size-weighted progress value. An interrupted setup
+  resumes with only what is left ("Resume setup (165 MB left)").
+- Component kinds (`AiModelKind`) and sizes live in the data layer
+  (`OnDeviceAiRuntime.components`).
+
+To change models, edit `LiteRtAiRuntime` (variants and `components`). No
+domain or UI code changes. `test/data/ai_pack_test.dart` fails if
+user-facing code ever names a model.
+
 ## Models
 
 | Model | File | Size | Role |
@@ -62,7 +80,7 @@ streamed token by token. Models load lazily on first use.
 
 | Situation | Behaviour |
 |---|---|
-| Gemma not installed | `RuleBasedMemoryAnalyzer` (deterministic rules) labelled "Offline rules" |
+| AI pack not set up | `RuleBasedMemoryAnalyzer` (deterministic rules) labelled "Offline rules" |
 | Gemma fails mid-analysis | `FallbackMemoryAnalyzer` logs and uses rules |
 | Gemma not installed for Ask Brain | Shows the relevant memories and explains the model is missing |
 | Embedder not installed | Keyword search with token-overlap boost |

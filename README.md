@@ -48,7 +48,9 @@ flutter pub get
 flutter run -d linux      # or: flutter run -d <android-device-id>
 ```
 
-Then open **Settings → AI models** to download:
+Then open **Settings → On-device AI** and tap **Set up**. Users see a
+single *Pocket Brain AI* download (about 2.8 GB); under the hood it installs
+two models:
 
 | Model | Size | Enables |
 |---|---|---|
@@ -56,7 +58,8 @@ Then open **Settings → AI models** to download:
 | EmbeddingGemma 2 Text 270M | 165 MB | Semantic search, related memories, duplicate detection |
 
 Gemma 4 E2B is the lightest Gemma 4 model and is designed for phones with
-4–6 GB of RAM. See [docs/ai-models.md](docs/ai-models.md) for hardware notes.
+4–6 GB of RAM. See [docs/ai-models.md](docs/ai-models.md) for why the models
+are hidden behind one pack and for hardware notes.
 
 ## Development
 

@@ -6,6 +6,12 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- On-device AI is now one **Pocket Brain AI** setup with a single download
+  and progress bar instead of two separately downloaded models. Model names
+  no longer appear in the app, so models can change without UI changes.
+- An interrupted AI setup can be resumed and only downloads what is missing.
+
 ## [0.2.0] - 2026-11-13
 
 ### Fixed

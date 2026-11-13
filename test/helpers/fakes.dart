@@ -39,26 +39,24 @@ final class SilentLogger implements AppLogger {
 
 /// An AI runtime with configurable install state and canned output.
 final class FakeAiRuntime implements OnDeviceAiRuntime {
-  FakeAiRuntime({this.installed = const {}, this.reply = const ['Answer [1].']});
+  FakeAiRuntime({this.installed = const {}, this.reply = const ['Answer [1].'], this.failOn});
+
+  static const languageModelBytes = 2600;
+  static const embedderBytes = 400;
 
   Set<AiModelKind> installed;
   List<String> reply;
+
+  /// Installing this component throws, to simulate a failed download.
+  AiModelKind? failOn;
   final requests = <GenerationRequest>[];
+  final installOrder = <AiModelKind>[];
+  final _cancelled = <AiModelKind>{};
 
   @override
-  List<AiModelInfo> get models => const [
-    AiModelInfo(
-      kind: AiModelKind.languageModel,
-      name: 'Gemma 4 E2B',
-      purpose: 'Answers',
-      sizeBytes: 2588147712,
-    ),
-    AiModelInfo(
-      kind: AiModelKind.embedder,
-      name: 'EmbeddingGemma 2 Text',
-      purpose: 'Search',
-      sizeBytes: 165000000,
-    ),
+  List<AiComponent> get components => const [
+    AiComponent(kind: AiModelKind.languageModel, sizeBytes: languageModelBytes),
+    AiComponent(kind: AiModelKind.embedder, sizeBytes: embedderBytes),
   ];
 
   @override
@@ -69,14 +67,18 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
 
   @override
   Future<void> install(AiModelKind kind, {required void Function(int percent) onProgress}) async {
+    installOrder.add(kind);
     for (final p in [0, 50, 100]) {
+      await Future<void>.delayed(Duration.zero);
+      if (_cancelled.remove(kind)) throw const InstallCancelledException();
+      if (kind == failOn && p == 50) throw StateError('connection reset');
       onProgress(p);
     }
     installed = {...installed, kind};
   }
 
   @override
-  void cancelInstall(AiModelKind kind) {}
+  void cancelInstall(AiModelKind kind) => _cancelled.add(kind);
 
   @override
   Future<void> uninstall(AiModelKind kind) async =>

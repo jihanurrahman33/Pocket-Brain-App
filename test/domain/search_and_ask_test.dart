@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_brain/app/di/injection.dart';
-import 'package:pocket_brain/domain/entities/ai_model.dart';
+import 'package:pocket_brain/data/datasources/ai/on_device_ai_runtime.dart';
 import 'package:pocket_brain/domain/entities/ask.dart';
 import 'package:pocket_brain/domain/entities/search.dart';
 import 'package:pocket_brain/domain/repositories/memory_repository.dart';

@@ -78,6 +78,9 @@ lib/
   calls are model downloads and fetching a URL the user chose to save.
 - **AI grounding**: Ask Brain must answer only from retrieved memories and
   use `AskReplies.notFound` when nothing relevant exists. Do not weaken this.
+- **Never name AI models in user-facing text.** The UI only says
+  "Pocket Brain AI"; model details stay in `data/` (enforced by
+  `test/data/ai_pack_test.dart`).
 - AI output is a *suggestion*: the user's original `Memory.content` is never
   rewritten, and AI-generated text is visually marked (`AiBadge`).
 

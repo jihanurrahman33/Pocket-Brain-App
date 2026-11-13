@@ -1,5 +1,23 @@
 import '../../../domain/entities/ai_model.dart';
 
+/// The parts of the on-device AI pack. Internal to the data layer: the
+/// domain and UI only ever see one "Pocket Brain AI" pack.
+enum AiModelKind {
+  /// Writes summaries, tags, tasks, answers and recaps.
+  languageModel,
+
+  /// Turns text into vectors for semantic search.
+  embedder,
+}
+
+/// One downloadable part of the AI pack.
+class AiComponent {
+  const AiComponent({required this.kind, required this.sizeBytes});
+
+  final AiModelKind kind;
+  final int sizeBytes;
+}
+
 /// Parameters for one text generation.
 class GenerationRequest {
   const GenerationRequest({
@@ -24,7 +42,8 @@ final class InstallCancelledException implements Exception {
 /// depends on this interface, never on the engine package directly, so the
 /// engine can be swapped (or faked in tests).
 abstract interface class OnDeviceAiRuntime {
-  List<AiModelInfo> get models;
+  /// Pack components in install order (most important first).
+  List<AiComponent> get components;
 
   bool isInstalled(AiModelKind kind);
 

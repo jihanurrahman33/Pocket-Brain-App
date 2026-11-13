@@ -8,9 +8,9 @@ abstract final class AskReplies {
   static const notFound = "I couldn't find that in your saved memories.";
 
   static const modelMissing =
-      'The on-device AI model is not downloaded yet, so I can only point you '
-      'to the most relevant memories below. Download Gemma 4 in Settings → '
-      'AI models to get written answers.';
+      'Pocket Brain AI is not set up yet, so I can only point you to the most '
+      'relevant memories below. Set it up in Settings → On-device AI to get '
+      'written answers.';
 }
 
 /// A question for Ask Brain.

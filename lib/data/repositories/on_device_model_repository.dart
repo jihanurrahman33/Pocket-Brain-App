@@ -7,58 +7,91 @@ import '../../domain/entities/ai_model.dart';
 import '../../domain/repositories/model_repository.dart';
 import '../datasources/ai/on_device_ai_runtime.dart';
 
+/// Presents the runtime's separate model components as one AI pack.
+///
+/// Installation downloads every missing component in order and reports a
+/// single, size-weighted progress value, so the UI shows one download no
+/// matter how many models the pack contains.
 final class OnDeviceModelRepository implements ModelRepository {
-  const OnDeviceModelRepository(this._runtime, this._logger);
+  OnDeviceModelRepository(this._runtime, this._logger);
 
   final OnDeviceAiRuntime _runtime;
   final AppLogger _logger;
 
   static const _percent = 100;
 
-  @override
-  List<AiModelInfo> get available => _runtime.models;
+  /// The component currently downloading, so cancel can target it.
+  AiModelKind? _installing;
+  bool _cancelRequested = false;
+
+  List<AiComponent> get _missing => [
+    for (final c in _runtime.components)
+      if (!_runtime.isInstalled(c.kind)) c,
+  ];
 
   @override
-  AiModelStatus status(AiModelKind kind) => AiModelStatus(
-    info: available.firstWhere((m) => m.kind == kind),
-    installed: _runtime.isInstalled(kind),
-    loaded: _runtime.isLoaded(kind),
-  );
+  AiPackStatus status() {
+    final components = _runtime.components;
+    return AiPackStatus(
+      totalBytes: components.fold(0, (sum, c) => sum + c.sizeBytes),
+      remainingBytes: _missing.fold(0, (sum, c) => sum + c.sizeBytes),
+      isLoaded: components.any((c) => _runtime.isLoaded(c.kind)),
+    );
+  }
 
   @override
-  Future<Result<void>> install(
-    AiModelKind kind, {
-    required void Function(double progress) onProgress,
-  }) async {
+  Future<Result<void>> install({required void Function(double progress) onProgress}) async {
+    final missing = _missing;
+    final total = missing.fold(0, (sum, c) => sum + c.sizeBytes);
+    var completedBytes = 0;
+    _cancelRequested = false;
     try {
-      await _runtime.install(kind, onProgress: (p) => onProgress(p / _percent));
+      for (final component in missing) {
+        if (_cancelRequested) throw const InstallCancelledException();
+        _installing = component.kind;
+        await _runtime.install(
+          component.kind,
+          onProgress: (percent) => onProgress(
+            total == 0 ? 1 : (completedBytes + component.sizeBytes * percent / _percent) / total,
+          ),
+        );
+        completedBytes += component.sizeBytes;
+      }
+      onProgress(1);
       return const Success(null);
     } on InstallCancelledException {
       return const Err(CancelledFailure('Download cancelled.'));
     } on Object catch (e, s) {
-      _logger.error('Installing $kind failed', e, s);
+      _logger.error('Installing AI component $_installing failed', e, s);
       return Err(_failureFor(e));
+    } finally {
+      _installing = null;
     }
   }
 
   @override
-  void cancelInstall(AiModelKind kind) => _runtime.cancelInstall(kind);
+  void cancelInstall() {
+    _cancelRequested = true;
+    if (_installing case final kind?) _runtime.cancelInstall(kind);
+  }
 
   @override
-  Future<Result<void>> uninstall(AiModelKind kind) async {
+  Future<Result<void>> uninstall() async {
     try {
-      await _runtime.uninstall(kind);
+      for (final component in _runtime.components) {
+        if (_runtime.isInstalled(component.kind)) await _runtime.uninstall(component.kind);
+      }
       return const Success(null);
     } on Object catch (e, s) {
-      _logger.error('Removing $kind failed', e, s);
-      return const Err(ModelFailure('Could not delete the model files.'));
+      _logger.error('Removing the AI pack failed', e, s);
+      return const Err(ModelFailure('Could not delete the AI files.'));
     }
   }
 
   @override
   Future<void> unloadAll() async {
-    for (final kind in AiModelKind.values) {
-      await _runtime.unload(kind);
+    for (final component in _runtime.components) {
+      await _runtime.unload(component.kind);
     }
   }
 
@@ -70,7 +103,7 @@ final class OnDeviceModelRepository implements ModelRepository {
     try {
       return await _runtime.storageBytes();
     } on Object catch (e, s) {
-      _logger.error('Reading model storage failed', e, s);
+      _logger.error('Reading AI storage failed', e, s);
       return 0;
     }
   }
@@ -81,8 +114,8 @@ final class OnDeviceModelRepository implements ModelRepository {
       return const NetworkFailure();
     }
     if (text.contains('ENOSPC') || text.toLowerCase().contains('no space')) {
-      return const ModelFailure('Not enough storage space for this model.');
+      return const ModelFailure('Not enough storage space for Pocket Brain AI.');
     }
-    return const ModelFailure('The model could not be downloaded. Please try again.');
+    return const ModelFailure('Pocket Brain AI could not be downloaded. Please try again.');
   }
 }

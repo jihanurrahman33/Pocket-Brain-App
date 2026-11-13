@@ -7,62 +7,58 @@ import '../../repositories/model_repository.dart';
 import '../../repositories/preferences_repository.dart';
 import '../indexing/indexing_usecases.dart';
 
-/// A snapshot of every model plus device settings.
-typedef ModelOverview = ({List<AiModelStatus> models, ComputeBackend backend, int storageBytes});
+/// The AI pack's state plus device settings.
+typedef AiOverview = ({AiPackStatus pack, ComputeBackend backend, int storageBytes});
 
-final class GetModelOverview implements UseCase<ModelOverview, NoParams> {
-  const GetModelOverview(this._models, this._preferences);
+final class GetAiOverview implements UseCase<AiOverview, NoParams> {
+  const GetAiOverview(this._models, this._preferences);
 
   final ModelRepository _models;
   final PreferencesRepository _preferences;
 
   @override
-  Future<ModelOverview> call(NoParams _) async => (
-    models: [for (final info in _models.available) _models.status(info.kind)],
+  Future<AiOverview> call(NoParams _) async => (
+    pack: _models.status(),
     backend: _preferences.computeBackend,
     storageBytes: await _models.storageBytes(),
   );
 }
 
-typedef InstallParams = ({AiModelKind kind, void Function(double progress) onProgress});
-
-/// Downloads a model; after the embedder arrives, older memories are
-/// indexed in the background so semantic search covers them.
-final class InstallModel implements UseCase<Result<void>, InstallParams> {
-  const InstallModel(this._models, this._indexPending);
+/// Downloads the AI pack. Afterwards, memories saved before semantic search
+/// existed are indexed in the background.
+final class InstallAi implements UseCase<Result<void>, void Function(double progress)> {
+  const InstallAi(this._models, this._indexPending);
 
   final ModelRepository _models;
   final IndexPendingMemories _indexPending;
 
   @override
-  Future<Result<void>> call(InstallParams params) async {
-    final result = await _models.install(params.kind, onProgress: params.onProgress);
-    if (result.isSuccess && params.kind == AiModelKind.embedder) {
-      unawaited(_indexPending(noParams));
-    }
+  Future<Result<void>> call(void Function(double progress) onProgress) async {
+    final result = await _models.install(onProgress: onProgress);
+    if (result.isSuccess) unawaited(_indexPending(noParams));
     return result;
   }
 }
 
-final class CancelModelInstall implements UseCase<void, AiModelKind> {
-  const CancelModelInstall(this._models);
+final class CancelAiInstall implements UseCase<void, NoParams> {
+  const CancelAiInstall(this._models);
 
   final ModelRepository _models;
 
   @override
-  Future<void> call(AiModelKind kind) async => _models.cancelInstall(kind);
+  Future<void> call(NoParams _) async => _models.cancelInstall();
 }
 
-final class UninstallModel implements UseCase<Result<void>, AiModelKind> {
-  const UninstallModel(this._models);
+final class UninstallAi implements UseCase<Result<void>, NoParams> {
+  const UninstallAi(this._models);
 
   final ModelRepository _models;
 
   @override
-  Future<Result<void>> call(AiModelKind kind) => _models.uninstall(kind);
+  Future<Result<void>> call(NoParams _) => _models.uninstall();
 }
 
-/// Saves the preference and reloads models on the new backend.
+/// Saves the preference and reloads the AI on the new backend.
 final class ChangeComputeBackend implements UseCase<void, ComputeBackend> {
   const ChangeComputeBackend(this._models, this._preferences);
 

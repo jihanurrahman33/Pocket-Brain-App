@@ -18,7 +18,6 @@ import '../../data/repositories/sqlite_task_repository.dart';
 import '../../data/services/ai/generation_services.dart';
 import '../../data/services/ai/memory_analyzers.dart';
 import '../../data/services/web/http_link_reader.dart';
-import '../../domain/entities/ai_model.dart';
 import '../../domain/entities/search.dart';
 import '../../domain/repositories/collection_repository.dart';
 import '../../domain/repositories/conversation_repository.dart';
@@ -246,10 +245,10 @@ void _registerUseCases() {
     ..registerLazySingleton(() => GetDigest(tasks: sl(), recall: sl(), clock: sl(), logger: sl()))
     ..registerLazySingleton(() => WriteWeeklyRecap(sl(), sl()))
     // Models
-    ..registerLazySingleton(() => GetModelOverview(sl(), sl()))
-    ..registerLazySingleton(() => InstallModel(sl(), sl()))
-    ..registerLazySingleton(() => CancelModelInstall(sl()))
-    ..registerLazySingleton(() => UninstallModel(sl()))
+    ..registerLazySingleton(() => GetAiOverview(sl(), sl()))
+    ..registerLazySingleton(() => InstallAi(sl(), sl()))
+    ..registerLazySingleton(() => CancelAiInstall(sl()))
+    ..registerLazySingleton(() => UninstallAi(sl()))
     ..registerLazySingleton(() => ChangeComputeBackend(sl(), sl()))
     ..registerLazySingleton(() => UnloadModels(sl()))
     // Settings
@@ -285,9 +284,9 @@ void _registerPresentation() {
     ..registerFactory(
       () => ModelBloc(
         getOverview: sl(),
-        installModel: sl(),
+        installAi: sl(),
         cancelInstall: sl(),
-        uninstallModel: sl(),
+        uninstallAi: sl(),
         changeBackend: sl(),
         unloadModels: sl(),
       ),

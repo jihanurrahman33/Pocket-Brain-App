@@ -106,7 +106,7 @@ class _SuggestionsCardState extends State<_SuggestionsCard> {
                 ),
                 AiBadge(
                   label: switch (origin) {
-                    AnalysisOrigin.model => 'Gemma · editable',
+                    AnalysisOrigin.model => 'AI · editable',
                     AnalysisOrigin.rules => 'Offline rules · editable',
                     AnalysisOrigin.none => 'AI off · editable',
                   },
@@ -117,7 +117,7 @@ class _SuggestionsCardState extends State<_SuggestionsCard> {
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.xs),
                 child: Text(
-                  'Download Gemma 4 in Settings for smarter titles, summaries and tags.',
+                  'Set up Pocket Brain AI in Settings for smarter titles, summaries and tags.',
                   style: theme.textTheme.bodySmall,
                 ),
               ),

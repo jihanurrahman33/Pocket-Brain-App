@@ -12,31 +12,17 @@ final class ModelRefreshRequested extends ModelEvent {
   const ModelRefreshRequested();
 }
 
+/// Downloads everything Pocket Brain AI still needs, as one download.
 final class ModelInstallRequested extends ModelEvent {
-  const ModelInstallRequested(this.kind);
-
-  final AiModelKind kind;
-
-  @override
-  List<Object?> get props => [kind];
+  const ModelInstallRequested();
 }
 
 final class ModelInstallCancelled extends ModelEvent {
-  const ModelInstallCancelled(this.kind);
-
-  final AiModelKind kind;
-
-  @override
-  List<Object?> get props => [kind];
+  const ModelInstallCancelled();
 }
 
 final class ModelUninstallRequested extends ModelEvent {
-  const ModelUninstallRequested(this.kind);
-
-  final AiModelKind kind;
-
-  @override
-  List<Object?> get props => [kind];
+  const ModelUninstallRequested();
 }
 
 final class ModelBackendChanged extends ModelEvent {
@@ -48,7 +34,7 @@ final class ModelBackendChanged extends ModelEvent {
   List<Object?> get props => [backend];
 }
 
-/// Frees RAM used by loaded models.
+/// Frees RAM used by the AI.
 final class ModelUnloadRequested extends ModelEvent {
   const ModelUnloadRequested();
 }

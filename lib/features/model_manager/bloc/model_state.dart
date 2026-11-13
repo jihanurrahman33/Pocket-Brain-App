@@ -1,56 +1,33 @@
 part of 'model_bloc.dart';
 
-/// One model as shown in the UI: its status plus any download in progress.
-class ModelSlot extends Equatable {
-  const ModelSlot({required this.status, this.progress, this.failure});
-
-  final AiModelStatus status;
-
-  /// Download progress in [0, 1]; null when not downloading.
-  final double? progress;
-  final Failure? failure;
-
-  AiModelInfo get info => status.info;
-
-  bool get isInstalled => status.installed;
-
-  bool get isDownloading => progress != null;
-
-  ModelSlot downloading(double progress) => ModelSlot(status: status, progress: progress);
-
-  ModelSlot withFailure(Failure failure) => ModelSlot(status: status, failure: failure);
-
-  @override
-  List<Object?> get props => [status, progress, failure];
-}
-
+/// The Pocket Brain AI pack as shown in the UI.
 class ModelState extends Equatable {
   const ModelState({
-    this.slots = const {},
+    this.pack,
+    this.progress,
     this.backend = ComputeBackend.cpu,
     this.storageBytes = 0,
+    this.failure,
   });
 
-  final Map<AiModelKind, ModelSlot> slots;
+  /// Null until the first refresh.
+  final AiPackStatus? pack;
+
+  /// Overall download progress in [0, 1]; null when not downloading.
+  final double? progress;
   final ComputeBackend backend;
   final int storageBytes;
 
-  ModelSlot? get languageModel => slots[AiModelKind.languageModel];
+  /// Why the last download or removal failed.
+  final Failure? failure;
 
-  bool get isLanguageModelReady => languageModel?.isInstalled ?? false;
+  bool get isDownloading => progress != null;
 
-  ModelState withSlot(AiModelKind kind, ModelSlot slot) => copyWith(models: {...slots, kind: slot});
+  bool get isReady => pack?.isInstalled ?? false;
 
-  ModelState copyWith({
-    Map<AiModelKind, ModelSlot>? models,
-    ComputeBackend? backend,
-    int? storageBytes,
-  }) => ModelState(
-    slots: models ?? slots,
-    backend: backend ?? this.backend,
-    storageBytes: storageBytes ?? this.storageBytes,
-  );
+  ModelState downloading(double progress) =>
+      ModelState(pack: pack, progress: progress, backend: backend, storageBytes: storageBytes);
 
   @override
-  List<Object?> get props => [slots, backend, storageBytes];
+  List<Object?> get props => [pack, progress, backend, storageBytes, failure];
 }
