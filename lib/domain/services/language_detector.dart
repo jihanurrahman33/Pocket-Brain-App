@@ -2,7 +2,10 @@
 enum ReplyLanguage {
   english('English'),
   bangla('Bangla (in Bengali script)'),
-  banglish('Bangla written in English letters (Banglish), like the user');
+
+  /// Answered in Bengali script: small models write romanised Bangla poorly
+  /// (it has no standard spelling), but Bengali script well.
+  banglish('Bangla, using Bengali script (the user typed Bangla in English letters)');
 
   const ReplyLanguage(this.instruction);
 

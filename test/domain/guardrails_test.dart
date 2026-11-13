@@ -131,10 +131,7 @@ void main() {
 
     test('Banglish questions ask for a Banglish answer', () async {
       await ask('ami ekta boi portesilam eta kobe sesh hobe?');
-      expect(
-        ai.requests.last.prompt,
-        contains('LANGUAGE: Reply in Bangla written in English letters'),
-      );
+      expect(ai.requests.last.prompt, contains('LANGUAGE: Reply in Bangla, using Bengali script'));
     });
 
     test('memories are passed as data, never as instructions', () async {
