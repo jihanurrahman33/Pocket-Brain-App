@@ -1,5 +1,6 @@
 import '../../../core/utils/clock.dart';
 import '../../../core/utils/id_generator.dart';
+import '../../entities/ask.dart';
 import '../../entities/assistant.dart';
 import '../../entities/task_item.dart';
 import '../../entities/user_intent.dart';
@@ -411,6 +412,9 @@ final class SaveNoteHandler implements IntentHandler {
 
   @override
   Future<IntentReply> handle(IntentRequest r) async {
+    if (_lacksContent(r)) {
+      return _say(_bn(r) ? AskReplies.noteContentPromptBangla : AskReplies.noteContentPrompt);
+    }
     final text = r.intent.note.trim().isNotEmpty
         ? r.intent.note.trim()
         : r.question.replaceFirst(
@@ -430,6 +434,24 @@ final class SaveNoteHandler implements IntentHandler {
       actions: toolbox.proposals,
     );
   }
+}
+
+/// "save my bajar list": a request to save with nothing to save yet.
+bool _lacksContent(IntentRequest r) {
+  final said = r.question;
+  if (said.contains(':') || said.contains('\n') || RegExp(r'\d').hasMatch(said)) return false;
+  final rest = said
+      .toLowerCase()
+      .replaceAll(
+        RegExp(
+          r'\b(give me|a form|form|for input|input|and|please|pls|can you|could you|save|remember|'
+          r'note|store|keep|add|my|the|this|that|a|an|it|down|jot)\b',
+        ),
+        ' ',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return rest.split(' ').where((w) => w.isNotEmpty).length <= 2;
 }
 
 final class SmallTalkHandler implements IntentHandler {

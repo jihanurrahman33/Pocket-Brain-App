@@ -258,6 +258,52 @@ void main() {
       expect(events.whereType<AskTasksFound>().single.tasks.single.title, 'Gym');
     });
 
+    // Real use: "give me a form for input and save my bajar list" became the
+    // task "Bajar list form" due tomorrow (a day nobody mentioned).
+    test('"save my bajar list" asks what to save, then saves the next message', () async {
+      ai.intentReply = FakeAiRuntime.intentJson(
+        'create_task',
+        title: 'Bajar list form',
+        date: _tomorrow,
+      );
+      final first = await say('give me a form for input and save my bajar list');
+      final ask = answerOf(first);
+      expect(ask.text, AskReplies.noteContentPrompt);
+      expect(ask.actions, isEmpty);
+
+      ai.intentReply = FakeAiRuntime.intentJson('small_talk');
+      final second = answerOf(
+        await say(
+          'rice, eggs, onions, 2kg potatoes',
+          history: [first.whereType<AskQuestionRecorded>().single.message, ask],
+        ),
+      );
+      expect(second.actions.single.type, AssistantActionType.saveMemory);
+      expect(second.actions.single.args['text'], 'rice, eggs, onions, 2kg potatoes');
+    });
+
+    test('saying "never mind" after the prompt does not save it', () async {
+      ai.intentReply = FakeAiRuntime.intentJson('small_talk');
+      final first = await say('save my bajar list');
+      final answer = answerOf(
+        await say(
+          'never mind',
+          history: [first.whereType<AskQuestionRecorded>().single.message, answerOf(first)],
+        ),
+      );
+      expect(answer.actions, isEmpty);
+    });
+
+    test('a date the user never said is dropped', () async {
+      ai.intentReply = FakeAiRuntime.intentJson(
+        'create_task',
+        title: 'Water plants',
+        date: _tomorrow,
+      );
+      final answer = answerOf(await say('please handle the plants somehow'));
+      expect(answer.actions.single.args['due'], isEmpty);
+    });
+
     test('unclear messages offer a task or a note, never a dead end', () async {
       ai.intentReply = FakeAiRuntime.intentJson('unclear', confidence: 0.2);
       final answer = answerOf(await say('the blue notebook'));

@@ -43,6 +43,11 @@ final class UnderstandMessage implements UseCase<UserIntent, UnderstandRequest> 
   /// Model intents that change data need more certainty than lookups.
   static const minConfidenceForChanges = 0.6;
 
+  static final _cancel = RegExp(
+    r'^\s*(never ?mind|cancel|forget it|no|nope|skip|stop|na|thak)\b',
+    caseSensitive: false,
+  );
+
   static const _changes = {
     IntentType.completeTask,
     IntentType.reopenTask,
@@ -73,6 +78,11 @@ final class UnderstandMessage implements UseCase<UserIntent, UnderstandRequest> 
         filter: details?.filter ?? '',
         source: IntentSource.correction,
       );
+    }
+
+    // The user was just asked what to save: their message is the content.
+    if (request.context.awaitingNote && !_cancel.hasMatch(message)) {
+      return UserIntent(IntentType.saveNote, note: message, source: IntentSource.rules);
     }
 
     if (IntentRouter.understand(message, request.tasks, now: now) case final fast?) return fast;
@@ -110,6 +120,8 @@ final class UnderstandMessage implements UseCase<UserIntent, UnderstandRequest> 
   static UserIntent _checkDate(UserIntent intent, String message, DateTime now) {
     final parsed = DueDateParser.parse(message, now: now);
     if (parsed != null) return intent.copyWith(date: () => parsed);
+    // "save my bajar list" never named a day: any date is invented.
+    if (!DueDateParser.mentionsDate(message)) return intent.copyWith(date: () => null);
     final today = DateTime(now.year, now.month, now.day);
     if (intent.date case final d? when d.isBefore(today)) return intent.copyWith(date: () => null);
     return intent;

@@ -67,6 +67,11 @@ abstract final class IntentRouter {
     caseSensitive: false,
   );
 
+  static final _saveList = RegExp(
+    r'\b(save|store|keep|write down|jot down|note down)\b.*\blist\b',
+    caseSensitive: false,
+  );
+
   /// "not done", "undo", "didn't… yet": the opposite of finishing.
   static final _negated = RegExp(
     r"\b(not|never|undo|reopen|un-?tick|uncheck|yet|isn't|wasn't|didn't|haven't|forgot|forget|ekhono|hoyni|kori ?nai|nai)\b",
@@ -202,6 +207,12 @@ abstract final class IntentRouter {
   /// the model decides. Rules only claim phrasings measured to be reliable
   /// (see `test/fixtures/intent_eval_set.json`).
   static UserIntent? understand(String message, List<TaskItem> tasks, {required DateTime now}) {
+    // "save my bajar list": a request to keep a list is a note, not a task.
+    if (_saveList.hasMatch(message) &&
+        !_createWords.hasMatch(message) &&
+        !_question.hasMatch(message)) {
+      return UserIntent(IntentType.saveNote, note: message.trim());
+    }
     // "buy milk is not done", "undo the milk task": a finished task named
     // together with a negation reopens it.
     if (_negated.hasMatch(message) &&

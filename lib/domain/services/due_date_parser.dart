@@ -34,6 +34,20 @@ abstract final class DueDateParser {
     caseSensitive: false,
   );
 
+  static final _dateWords = RegExp(
+    r'\d|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*|\b(next|this|week|weekend|month|'
+    r'eid|end of)\b',
+    caseSensitive: false,
+  );
+
+  /// Whether the message states any day at all. A date the model returns
+  /// for a message without one is invented and must be dropped.
+  static bool mentionsDate(String text) =>
+      phrase.hasMatch(text) ||
+      _dateWords.hasMatch(text) ||
+      _tomorrow.hasMatch(text) ||
+      _today.hasMatch(text);
+
   static DateTime? parse(String text, {required DateTime now}) {
     final today = DateTime(now.year, now.month, now.day);
     if (_dayAfterTomorrow.hasMatch(text)) return _add(today, 2);

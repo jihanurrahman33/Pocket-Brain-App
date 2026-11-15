@@ -11,6 +11,17 @@ import 'user_intent.dart';
 abstract final class AskReplies {
   static const notFound = "I couldn't find that in your saved memories.";
 
+  /// Asked when the user wants something saved but gave no content; the next
+  /// message is saved as the note.
+  static const noteContentPrompt =
+      "I can't show forms, but just send me what to save (for example your list, "
+      'one item per line) and I will save it as a note.';
+  static const noteContentPromptBangla =
+      'আমি ফর্ম দেখাতে পারি না, তবে কী সেভ করব সেটা সরাসরি পাঠান (যেমন আপনার তালিকা)। আমি নোট হিসেবে সেভ করে দেব।';
+
+  static bool isNotePrompt(String text) =>
+      text == noteContentPrompt || text == noteContentPromptBangla;
+
   static const modelMissing =
       'Pocket Brain AI is not set up yet, so I can only point you to the most '
       'relevant memories below. Set it up in Settings → On-device AI to get '

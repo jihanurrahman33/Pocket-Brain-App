@@ -117,7 +117,15 @@ class UserIntent extends Equatable {
 /// What the conversation already shows, so follow-ups resolve: "the second
 /// one", "it", "make it 6 pm", "no, tomorrow".
 class IntentContext extends Equatable {
-  const IntentContext({this.recentTasks = const [], this.pendingProposal, this.previousQuestion});
+  const IntentContext({
+    this.recentTasks = const [],
+    this.pendingProposal,
+    this.previousQuestion,
+    this.awaitingNote = false,
+  });
+
+  /// The last answer asked what to save, so the next message is the note.
+  final bool awaitingNote;
 
   /// Tasks shown as cards in the last answer, in order.
   final List<TaskItem> recentTasks;
@@ -130,7 +138,7 @@ class IntentContext extends Equatable {
   static const empty = IntentContext();
 
   @override
-  List<Object?> get props => [recentTasks, pendingProposal, previousQuestion];
+  List<Object?> get props => [recentTasks, pendingProposal, previousQuestion, awaitingNote];
 }
 
 /// A message and the intent the user said it meant ("Not what I meant").

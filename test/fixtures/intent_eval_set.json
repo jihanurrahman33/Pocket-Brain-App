@@ -1273,6 +1273,14 @@
   {
    "text": "tell me a joke",
    "intent": "out_of_scope"
+  },
+  {
+   "text": "give me a form for input and save my bajar list",
+   "intent": "save_note"
+  },
+  {
+   "text": "save my shopping list",
+   "intent": "save_note"
   }
  ]
 }

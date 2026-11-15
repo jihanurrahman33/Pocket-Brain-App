@@ -28,6 +28,10 @@ uses [Semantic Versioning](https://semver.org/).
 - `tool/export_intent_finetune.dart` exports the set as fine-tuning data.
 
 ### Fixed
+- "Give me a form and save my bajar list" made a task "Bajar list form" due
+  tomorrow. Requests to save something with no content now ask what to save
+  and save your next message as a note; a due date the user never stated is
+  dropped instead of invented.
 - "Not done", "undo" and "I forgot to…" were read as completing a task.
 
 ## [0.3.0] - 2026-11-14

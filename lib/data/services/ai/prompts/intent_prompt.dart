@@ -83,6 +83,7 @@ EXAMPLES:
 "move dentist to friday" → reschedule_task, task_ref "dentist", date ${plus(friday)}
 "what's due tomorrow?" → list_tasks, filter tomorrow
 "my locker code is 4312" → save_note, note "Locker code is 4312"
+"give me a form and save my bajar list" → save_note (no content yet: note "")
 "where did I park?" → ask_memory, query "park parked location"
 "amar passport number koto?" → ask_memory, query "passport number"
 "spoke to mom already" → complete_task, task_ref "mom"

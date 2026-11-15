@@ -312,6 +312,7 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       recentTasks: [for (final id in lastAnswer?.taskIds ?? const <String>[]) ?byId[id]],
       pendingProposal: lastAnswer?.actions.where((a) => a.isPending).firstOrNull,
       previousQuestion: history.where((m) => m.isUser).lastOrNull?.text,
+      awaitingNote: lastAnswer != null && AskReplies.isNotePrompt(lastAnswer.text),
     );
   }
 
