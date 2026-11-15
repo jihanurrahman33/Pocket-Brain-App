@@ -14,7 +14,16 @@ class AssistantTool extends Equatable {
 
 /// Things Ask Brain can propose doing. Nothing that changes data happens
 /// until the user confirms it.
-enum AssistantActionType { createTask, saveMemory }
+enum AssistantActionType {
+  createTask,
+  saveMemory,
+
+  /// Moves a task to a new day and/or reminder time (`taskId`, `due`, `reminder`).
+  rescheduleTask,
+
+  /// Deletes a task (`taskId`, `title`).
+  deleteTask,
+}
 
 enum AssistantActionStatus { proposed, done, dismissed }
 

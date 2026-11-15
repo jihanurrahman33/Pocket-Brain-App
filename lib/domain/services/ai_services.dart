@@ -4,6 +4,7 @@ import '../entities/ask.dart';
 import '../entities/capture.dart';
 import '../entities/memory.dart';
 import '../entities/memory_analysis.dart';
+import '../entities/user_intent.dart';
 import 'assistant_toolbox.dart';
 
 /// Ports for AI capabilities (Interface Segregation: each consumer depends
@@ -88,4 +89,18 @@ abstract interface class QueryRewriter {
 
   /// Search keywords, or null if rewriting failed.
   Future<String?> toSearchQuery(String question);
+}
+
+/// Understands what a message asks for, in any wording or language: the
+/// intent and its details, as structured data (never free text).
+abstract interface class IntentUnderstander {
+  bool get isAvailable;
+
+  /// Null when understanding failed; callers fall back to rules.
+  Future<UserIntent?> understand(
+    String message, {
+    required DateTime now,
+    IntentContext context = IntentContext.empty,
+    List<IntentExample> examples = const [],
+  });
 }

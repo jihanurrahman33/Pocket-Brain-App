@@ -52,6 +52,17 @@ final class AskRegenerateRequested extends AskEvent {
   const AskRegenerateRequested();
 }
 
+/// "Not what I meant": answer the last question again as [intent], and
+/// remember the correction.
+final class AskIntentCorrected extends AskEvent {
+  const AskIntentCorrected(this.intent);
+
+  final IntentType intent;
+
+  @override
+  List<Object?> get props => [intent];
+}
+
 final class AskStopRequested extends AskEvent {
   const AskStopRequested();
 }

@@ -127,18 +127,34 @@ CaptureConfirmed ─▶ SaveCapture: MemoryRepository.save → TaskRepository.sa
 
 ### Ask Brain
 
+Ask Brain follows the pipeline assistants such as Google Assistant and Siri
+use: **understand → resolve → act → respond**. See
+[ADR 0002](decisions/0002-intent-understanding.md).
+
 ```
 AskQuestionSubmitted ─▶ AskBloc (events processed sequentially)
   └▶ AskBrain (stream):
        AskConversationStarted → AskQuestionRecorded
-       → RetrieveAnswerSources (SearchMemories, relevance threshold)
-       → AskSourcesFound
-       → AnswerGenerator.generate   (skipped if no sources / no model)
-       → AskAnswerUpdated × n → AskAnswerCompleted (persisted)
+       → AssistantGuardrails        safety + help/greeting fixed replies
+       → UnderstandMessage          UserIntent (type + slots)
+            correction ("Not what I meant")
+            > IntentRouter rules fast path (precision-gated in CI)
+            > IntentUnderstander (Gemma, JSON-schema constrained)
+            > fallback: ask_memory
+            + DueDateParser cross-check of dates
+       ├─ ask_memory → RetrieveAnswerSources → AskSourcesFound
+       │               → AnswerGenerator.generate → AskAnswerUpdated × n
+       └─ otherwise  → IntentHandlers[type] (Strategy + Registry)
+                        TaskResolver: ordinals/pronouns → title words → embeddings
+                        changes: undoable (complete/reopen) or proposed (create,
+                        reschedule, delete, save note) → AskTasksFound
+       → AskAnswerCompleted (persisted)
 ```
 
-Grounding rules live in the use case, not the UI: no relevant memory means
-the fixed reply `AskReplies.notFound` without calling the model.
+Grounding rules live in the use case, not the UI: a question about memories
+with no relevant memory gets the fixed reply `AskReplies.notFound`. Every
+other intent is answered from real data by a handler, so there is no dead
+end; unsure messages get the `unclear` reply offering "task or note".
 
 ## Error handling
 

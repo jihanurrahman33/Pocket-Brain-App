@@ -28,10 +28,14 @@ class TaskItem extends Equatable {
   /// Open and due before today.
   bool isOverdue(DateTime now) => !isDone && dueAt != null && dueAt!.isBefore(now.startOfDay);
 
-  TaskItem copyWith({bool? isDone, DateTime? Function()? reminderAt}) => TaskItem(
+  TaskItem copyWith({
+    bool? isDone,
+    DateTime? Function()? reminderAt,
+    DateTime? Function()? dueAt,
+  }) => TaskItem(
     id: id,
     title: title,
-    dueAt: dueAt,
+    dueAt: dueAt != null ? dueAt() : this.dueAt,
     reminderAt: reminderAt != null ? reminderAt() : this.reminderAt,
     isDone: isDone ?? this.isDone,
     memoryId: memoryId,

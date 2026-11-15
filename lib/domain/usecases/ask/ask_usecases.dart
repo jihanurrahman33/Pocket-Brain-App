@@ -13,18 +13,19 @@ import '../../entities/conversation.dart';
 import '../../entities/memory.dart';
 import '../../entities/search.dart';
 import '../../entities/task_item.dart';
+import '../../entities/user_intent.dart';
 import '../../repositories/conversation_repository.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
 import '../../services/ai_services.dart';
 import '../../services/assistant_guardrails.dart';
 import '../../services/assistant_toolbox.dart';
-import '../../services/intent_router.dart';
 import '../../services/language_detector.dart';
 import '../capture/capture_usecases.dart';
 import '../search/search_usecases.dart';
 import '../tasks/task_usecases.dart';
-import 'answer_task_intent.dart';
+import 'intent_handlers.dart';
+import 'understand_message.dart';
 
 /// [mode] is keyword for AI-rewritten search terms: they are exact English
 /// keywords, and meaning-based matching on them pulled in unrelated notes.
@@ -57,11 +58,14 @@ final class RetrieveAnswerSources implements UseCase<List<Memory>, SourceQuery> 
   }
 }
 
-/// Answers a question from the user's memories only, streaming progress.
+/// Ask Brain: understands any message and responds, streaming progress.
 ///
-/// Rules: no relevant memory → the fixed "couldn't find" reply without
-/// calling the model; no model → point to the sources; otherwise a grounded,
-/// cited answer. Every turn is persisted.
+/// Pipeline: guardrails → **understand** ([UnderstandMessage]: rules fast
+/// path, else the model constrained to a JSON intent) → **act** (an
+/// [IntentHandler] per intent, deterministic; changes are proposed or
+/// undoable) → **respond**. Questions about saved things go to retrieval
+/// and a grounded, cited answer: no relevant memory → the fixed "couldn't
+/// find" reply. Every turn is persisted.
 final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
   AskBrain({
     required ConversationRepository conversations,
@@ -69,7 +73,8 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
     required AnswerGenerator generator,
     required QueryRewriter rewriter,
     required TaskRepository tasks,
-    required AnswerTaskIntent answerTaskIntent,
+    required UnderstandMessage understand,
+    required IntentHandlers handlers,
     required IdGenerator ids,
     required Clock clock,
   }) : _conversations = conversations,
@@ -77,7 +82,8 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
        _generator = generator,
        _rewriter = rewriter,
        _tasks = tasks,
-       _answerTaskIntent = answerTaskIntent,
+       _understand = understand,
+       _handlers = handlers,
        _ids = ids,
        _clock = clock;
 
@@ -86,7 +92,8 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
   final AnswerGenerator _generator;
   final QueryRewriter _rewriter;
   final TaskRepository _tasks;
-  final AnswerTaskIntent _answerTaskIntent;
+  final UnderstandMessage _understand;
+  final IntentHandlers _handlers;
   final IdGenerator _ids;
   final Clock _clock;
 
@@ -136,15 +143,37 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       return;
     }
 
-    // Deterministic routing: task commands and questions are answered from
-    // real task data by the app, never by the model, and cite no memories.
     final allTasks = await _tasks.getAll();
-    final intent = IntentRouter.classify(question, allTasks);
-    if (intent is! MemoryQuestionIntent) {
-      final handled = await _answerTaskIntent((
+    final context = _contextFrom(request.history, allTasks);
+    final intent = await _understand((
+      message: question,
+      tasks: allTasks,
+      context: context,
+      forcedIntent: request.forcedIntent,
+    ));
+    // A small model sometimes files a personal question ("where did I
+    // park?") under chit-chat or "something else". Before saying "I only
+    // know what you saved", look: if a saved memory matches, answer it.
+    var sources = const <Memory>[];
+    var searched = false;
+    final unsureOfMemory =
+        intent.type == IntentType.outOfScope || intent.type == IntentType.smallTalk;
+    if (unsureOfMemory && intent.source != IntentSource.correction) {
+      sources = await _findSources(
+        question,
+        request.history,
+        conversation.collectionId,
+        keywords: intent.query,
+      );
+      searched = true;
+    }
+    final handler = sources.isNotEmpty ? null : _handlers[intent.type];
+    if (handler != null) {
+      final handled = await handler.handle((
         question: question,
         intent: intent,
         allTasks: allTasks,
+        context: context,
         language: LanguageDetector.detect(question),
       ));
       if (handled.tasks.isNotEmpty) yield AskTasksFound(handled.tasks);
@@ -160,7 +189,14 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       return;
     }
 
-    final sources = await _findSources(question, request.history, conversation.collectionId);
+    if (!searched) {
+      sources = await _findSources(
+        question,
+        request.history,
+        conversation.collectionId,
+        keywords: intent.query,
+      );
+    }
     yield AskSourcesFound(sources);
 
     final toolbox = AssistantToolbox(tasks: _tasks, ids: _ids, clock: _clock, question: question);
@@ -189,16 +225,21 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
   Future<List<Memory>> _findSources(
     String question,
     List<ChatMessage> history,
-    String? collectionId,
-  ) async {
+    String? collectionId, {
+    String keywords = '',
+  }) async {
     final text = _retrievalText(question, history);
     final direct = await _retrieveSources((
       question: text,
       collectionId: collectionId,
       mode: SearchMode.semantic,
     ));
-    if (direct.isNotEmpty || !_rewriter.isAvailable) return direct;
-    final rewritten = await _rewriter.toSearchQuery(text);
+    if (direct.isNotEmpty) return direct;
+    // The understanding step already wrote English keywords; otherwise ask
+    // the model to rewrite the question.
+    final rewritten = keywords.trim().isNotEmpty
+        ? keywords
+        : (_rewriter.isAvailable ? await _rewriter.toSearchQuery(text) : null);
     if (rewritten == null || rewritten.trim().isEmpty) return direct;
     return _retrieveSources((
       question: rewritten,
@@ -259,6 +300,18 @@ final class AskBrain implements StreamUseCase<AskProgress, AskRequest> {
       grounded: hasEvidence && !nothingFound,
       actions: proposals,
       taskIds: [for (final t in toolbox.listedTasks) t.id],
+    );
+  }
+
+  /// What the last answer showed, so "the second one" or "make it 6 pm"
+  /// can be understood.
+  static IntentContext _contextFrom(List<ChatMessage> history, List<TaskItem> allTasks) {
+    final lastAnswer = history.where((m) => !m.isUser).lastOrNull;
+    final byId = {for (final t in allTasks) t.id: t};
+    return IntentContext(
+      recentTasks: [for (final id in lastAnswer?.taskIds ?? const <String>[]) ?byId[id]],
+      pendingProposal: lastAnswer?.actions.where((a) => a.isPending).firstOrNull,
+      previousQuestion: history.where((m) => m.isUser).lastOrNull?.text,
     );
   }
 
@@ -383,12 +436,14 @@ typedef ActionDecision = ({ChatMessage message, String actionId});
 final class ConfirmAssistantAction implements UseCase<Result<ChatMessage>, ActionDecision> {
   ConfirmAssistantAction({
     required ConversationRepository conversations,
+    required TaskRepository tasks,
     required AddTask addTask,
     required SaveCapture saveCapture,
     required MemoryAnalyzer analyzer,
     required Clock clock,
     required AppLogger logger,
   }) : _conversations = conversations,
+       _tasks = tasks,
        _addTask = addTask,
        _saveCapture = saveCapture,
        _analyzer = analyzer,
@@ -396,6 +451,7 @@ final class ConfirmAssistantAction implements UseCase<Result<ChatMessage>, Actio
        _logger = logger;
 
   final ConversationRepository _conversations;
+  final TaskRepository _tasks;
   final AddTask _addTask;
   final SaveCapture _saveCapture;
   final MemoryAnalyzer _analyzer;
@@ -411,6 +467,8 @@ final class ConfirmAssistantAction implements UseCase<Result<ChatMessage>, Actio
     final outcome = switch (action.type) {
       AssistantActionType.createTask => await _createTask(action),
       AssistantActionType.saveMemory => await _saveMemory(action),
+      AssistantActionType.rescheduleTask => await _reschedule(action),
+      AssistantActionType.deleteTask => await _deleteTask(action),
     };
     if (outcome case Err(:final failure)) return Err(failure);
     return guard(_logger, 'Record confirmed action', () async {
@@ -430,6 +488,27 @@ final class ConfirmAssistantAction implements UseCase<Result<ChatMessage>, Actio
     );
     return result.fold(onSuccess: (_) => const Success(null), onFailure: Err.new);
   }
+
+  Future<Result<void>> _reschedule(AssistantAction action) => guard(
+    _logger,
+    'Reschedule task',
+    () async {
+      final task = (await _tasks.getAll()).where((t) => t.id == action.args['taskId']).firstOrNull;
+      if (task == null) throw StateError('The task no longer exists.');
+      final due = DateTime.tryParse(action.args['due'] ?? '');
+      final reminder = DateTime.tryParse(action.args['reminder'] ?? '');
+      // Saved through the repository, which reschedules the notification.
+      await _tasks.save(
+        task.copyWith(
+          dueAt: due == null ? null : () => due,
+          reminderAt: reminder == null ? null : () => reminder,
+        ),
+      );
+    },
+  );
+
+  Future<Result<void>> _deleteTask(AssistantAction action) =>
+      guard(_logger, 'Delete task', () => _tasks.delete(action.args['taskId'] ?? ''));
 
   Future<Result<void>> _saveMemory(AssistantAction action) async {
     final text = action.args['text'] ?? '';

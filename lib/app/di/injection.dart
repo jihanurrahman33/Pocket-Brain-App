@@ -13,6 +13,7 @@ import '../../data/datasources/local/app_database.dart';
 import '../../data/repositories/file_attachment_store.dart';
 import '../../data/repositories/json_file_export_repository.dart';
 import '../../data/repositories/on_device_model_repository.dart';
+import '../../data/repositories/prefs_intent_correction_repository.dart';
 import '../../data/repositories/prefs_preferences_repository.dart';
 import '../../data/repositories/reminder_syncing_task_repository.dart';
 import '../../data/repositories/sqlite_collection_repository.dart';
@@ -20,6 +21,7 @@ import '../../data/repositories/sqlite_conversation_repository.dart';
 import '../../data/repositories/sqlite_memory_repository.dart';
 import '../../data/repositories/sqlite_task_repository.dart';
 import '../../data/services/ai/generation_services.dart';
+import '../../data/services/ai/intent_understander.dart';
 import '../../data/services/ai/media_reader.dart';
 import '../../data/services/ai/memory_analyzers.dart';
 import '../../data/services/system/proc_meminfo_device_memory.dart';
@@ -29,6 +31,7 @@ import '../../domain/repositories/attachment_store.dart';
 import '../../domain/repositories/collection_repository.dart';
 import '../../domain/repositories/conversation_repository.dart';
 import '../../domain/repositories/data_export_repository.dart';
+import '../../domain/repositories/intent_correction_repository.dart';
 import '../../domain/repositories/memory_repository.dart';
 import '../../domain/repositories/model_repository.dart';
 import '../../domain/repositories/preferences_repository.dart';
@@ -38,8 +41,10 @@ import '../../domain/services/ai_services.dart';
 import '../../domain/services/device_memory.dart';
 import '../../domain/services/relevance_scorer.dart';
 import '../../domain/services/reminder_scheduler.dart';
-import '../../domain/usecases/ask/answer_task_intent.dart';
+import '../../domain/services/task_resolver.dart';
 import '../../domain/usecases/ask/ask_usecases.dart';
+import '../../domain/usecases/ask/intent_handlers.dart';
+import '../../domain/usecases/ask/understand_message.dart';
 import '../../domain/usecases/capture/capture_usecases.dart';
 import '../../domain/usecases/capture/voice_usecases.dart';
 import '../../domain/usecases/collections/collection_usecases.dart';
@@ -135,6 +140,9 @@ void _registerRepositories(Infrastructure infra) {
       () => SharedPrefsPreferencesRepository(infra.preferences),
     )
     ..registerLazySingleton<ModelRepository>(() => OnDeviceModelRepository(sl(), sl()))
+    ..registerLazySingleton<IntentCorrectionRepository>(
+      () => PrefsIntentCorrectionRepository(infra.preferences),
+    )
     ..registerSingleton<DataExportRepository>(infra.exporter)
     ..registerLazySingleton<AttachmentStore>(
       () => FileAttachmentStore(infra.attachmentsDirectory, sl()),
@@ -160,6 +168,8 @@ void _registerServices() {
     )
     ..registerLazySingleton<AnswerGenerator>(() => GemmaAnswerGenerator(sl()))
     ..registerLazySingleton<QueryRewriter>(() => GemmaQueryRewriter(sl(), sl()))
+    ..registerLazySingleton<IntentUnderstander>(() => GemmaIntentUnderstander(sl(), sl(), sl()))
+    ..registerLazySingleton(() => TaskResolver(sl()))
     ..registerLazySingleton<RecapWriter>(
       () => FallbackRecapWriter(
         primary: GemmaRecapWriter(sl()),
@@ -258,13 +268,18 @@ void _registerUseCases() {
     // Ask
     ..registerLazySingleton(() => RetrieveAnswerSources(sl()))
     ..registerLazySingleton(
+      () => UnderstandMessage(understander: sl(), corrections: sl(), clock: sl(), logger: sl()),
+    )
+    ..registerLazySingleton(() => RecordIntentCorrection(sl()))
+    ..registerLazySingleton(
       () => AskBrain(
         conversations: sl(),
         retrieveSources: sl(),
         generator: sl(),
         rewriter: sl(),
         tasks: sl(),
-        answerTaskIntent: AnswerTaskIntent(sl(), sl(), sl()),
+        understand: sl(),
+        handlers: IntentHandlers.standard(tasks: sl(), resolver: sl(), ids: sl(), clock: sl()),
         ids: sl(),
         clock: sl(),
       ),
@@ -272,6 +287,7 @@ void _registerUseCases() {
     ..registerLazySingleton(
       () => ConfirmAssistantAction(
         conversations: sl(),
+        tasks: sl(),
         addTask: sl(),
         saveCapture: sl(),
         analyzer: sl(),
@@ -330,6 +346,7 @@ void _registerUseCases() {
         sl<CollectionRepository>(),
         sl<SearchHistoryRepository>(),
         sl<AttachmentStore>(),
+        sl<IntentCorrectionRepository>(),
       ], sl()),
     );
 }
@@ -381,6 +398,7 @@ void _registerPresentation() {
         confirmAction: sl(),
         dismissAction: sl(),
         toggleTask: sl(),
+        recordCorrection: sl(),
       ),
     )
     ..registerFactory(

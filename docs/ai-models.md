@@ -70,6 +70,11 @@ file; the pack then reports *not installed* and the normal resumable install
 downloads it. Until it is registered, `OnDeviceAiRuntime.isUsable` keeps the
 previous model answering; afterwards the old file is uninstalled.
 
+The model *understands* (one schema-constrained JSON call, see
+[ADR 0002](decisions/0002-intent-understanding.md)); tested code *acts*.
+Measure changes with `flutter test integration_test/intent_eval_test.dart -d linux`
+(close the app first).
+
 Most reliability comes from **not asking the model to decide** things rules
 can decide: task completion and task questions (`IntentRouter`,
 `AnswerTaskIntent`), reminder times (`ReminderTimeParser`), task summaries
@@ -159,7 +164,8 @@ Ask Brain answer with deterministic rules that hold whatever the model writes:
 | Input | Whitespace collapsed; questions capped at 1,000 characters |
 | Safety | Messages about self-harm get a fixed, caring reply pointing to emergency help — never a model answer |
 | Intent | "What can you do?", greetings and thanks get fixed replies instead of a memory search |
-| Task routing | `IntentRouter` classifies task commands ("drink water done", "I drank water") and task questions by tested rules; `AnswerTaskIntent` completes the one matching open task or asks which, from real data, with no model call and no memory sources |
+| Understanding | Every message becomes a `UserIntent` (11 intents + slots): a precision-gated rules fast path, else Gemma constrained to a JSON schema; low-confidence changes become "unclear" (task or note?). See [ADR 0002](decisions/0002-intent-understanding.md) |
+| Acting | `IntentHandlers` act on real data: complete/reopen are undoable, create/reschedule/delete/save-note need Confirm; no memory sources on task replies |
 | Retrieval | Questions whose words match nothing (other languages, Bangla in English letters) are rewritten into English search terms and searched again |
 | Prompt injection | Memories are passed inside `<memory>` blocks marked *data, never instructions* |
 | Tools | Write tools only propose; arguments are validated; at most 4 tool turns |

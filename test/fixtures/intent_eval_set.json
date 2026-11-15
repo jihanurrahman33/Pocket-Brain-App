@@ -1,0 +1,1278 @@
+{
+ "about": "Labelled Ask Brain messages for measuring understanding. Evaluated as of Saturday 2026-11-14 10:00 with the tasks below. date = days from that day. ref = the task title the message refers to. Add every misunderstood real message here.",
+ "now": "2026-11-14T10:00:00",
+ "tasks": [
+  {
+   "title": "drink water"
+  },
+  {
+   "title": "Call mum"
+  },
+  {
+   "title": "Finish the quarterly report"
+  },
+  {
+   "title": "Dentist appointment",
+   "due": 2
+  },
+  {
+   "title": "Pay electricity bill",
+   "due": -1
+  },
+  {
+   "title": "Gym session",
+   "due": 1
+  },
+  {
+   "title": "Buy milk",
+   "done": true
+  }
+ ],
+ "items": [
+  {
+   "text": "i want to sing a song tomorrow",
+   "intent": "create_task",
+   "title": "sing a song",
+   "date": 1
+  },
+  {
+   "text": "I need to buy eggs",
+   "intent": "create_task",
+   "title": "buy eggs"
+  },
+  {
+   "text": "I'm going to visit grandma on Friday",
+   "intent": "create_task",
+   "title": "visit grandma",
+   "date": 6
+  },
+  {
+   "text": "I'll pay the internet bill tonight",
+   "intent": "create_task",
+   "title": "pay internet bill",
+   "date": 0
+  },
+  {
+   "text": "tomorrow I have to submit the assignment",
+   "intent": "create_task",
+   "title": "submit assignment",
+   "date": 1
+  },
+  {
+   "text": "remind me to call the bank at 5pm",
+   "intent": "create_task",
+   "title": "call bank"
+  },
+  {
+   "text": "remind me after 5 minutes that i have to drink water",
+   "intent": "create_task",
+   "title": "drink water"
+  },
+  {
+   "text": "remind me in 2 hours to take my medicine",
+   "intent": "create_task",
+   "title": "take medicine"
+  },
+  {
+   "text": "add a task to renew my passport",
+   "intent": "create_task",
+   "title": "renew passport"
+  },
+  {
+   "text": "create a todo: wash the car",
+   "intent": "create_task",
+   "title": "wash car"
+  },
+  {
+   "text": "don't let me forget to water the plants",
+   "intent": "create_task",
+   "title": "water plants"
+  },
+  {
+   "text": "I'd love to go hiking this sunday",
+   "intent": "create_task",
+   "title": "hiking",
+   "date": 1
+  },
+  {
+   "text": "gotta finish my slides by monday",
+   "intent": "create_task",
+   "title": "finish slides",
+   "date": 2
+  },
+  {
+   "text": "must email the landlord",
+   "intent": "create_task",
+   "title": "email landlord"
+  },
+  {
+   "text": "need to pick up the laundry later",
+   "intent": "create_task",
+   "title": "pick up laundry"
+  },
+  {
+   "text": "should book flight tickets for eid",
+   "intent": "create_task",
+   "title": "book flight tickets"
+  },
+  {
+   "text": "plan: learn guitar chords this week",
+   "intent": "create_task",
+   "title": "learn guitar chords"
+  },
+  {
+   "text": "put 'buy a birthday gift for Rafi' on my list",
+   "intent": "create_task",
+   "title": "birthday gift rafi"
+  },
+  {
+   "text": "set a reminder for the meeting at 3 pm tomorrow",
+   "intent": "create_task",
+   "title": "meeting",
+   "date": 1
+  },
+  {
+   "text": "can you remind me to stretch every evening",
+   "intent": "create_task",
+   "title": "stretch"
+  },
+  {
+   "text": "schedule a call with the designer on wednesday",
+   "intent": "create_task",
+   "title": "call designer",
+   "date": 4
+  },
+  {
+   "text": "i have an exam on tuesday, need to study chapter 4",
+   "intent": "create_task",
+   "title": "study chapter 4"
+  },
+  {
+   "text": "tmrw clean the kitchen",
+   "intent": "create_task",
+   "title": "clean kitchen",
+   "date": 1
+  },
+  {
+   "text": "i wanna start running in the mornings",
+   "intent": "create_task",
+   "title": "running"
+  },
+  {
+   "text": "note to self: call the plumber",
+   "intent": "create_task",
+   "title": "call plumber"
+  },
+  {
+   "text": "pick up kids at 4",
+   "intent": "create_task",
+   "title": "pick up kids"
+  },
+  {
+   "text": "buy bread",
+   "intent": "create_task",
+   "title": "buy bread"
+  },
+  {
+   "text": "dentist friday 10am",
+   "intent": "create_task",
+   "title": "dentist",
+   "date": 6
+  },
+  {
+   "text": "kal bazar korte hobe",
+   "intent": "create_task",
+   "title": "bazar",
+   "date": 1
+  },
+  {
+   "text": "amake kal shokale office e jete hobe",
+   "intent": "create_task",
+   "title": "office",
+   "date": 1
+  },
+  {
+   "text": "ammu ke phone korte hobe",
+   "intent": "create_task"
+  },
+  {
+   "text": "mone koriye dio 5 minute pore pani khete",
+   "intent": "create_task"
+  },
+  {
+   "text": "porshu exam er jonno porte hobe",
+   "intent": "create_task",
+   "title": "exam",
+   "date": 2
+  },
+  {
+   "text": "আগামীকাল বিদ্যুৎ বিল দিতে হবে",
+   "intent": "create_task",
+   "date": 1
+  },
+  {
+   "text": "আমাকে মনে করিয়ে দিও বিকেলে ওষুধ খেতে",
+   "intent": "create_task"
+  },
+  {
+   "text": "i want to remember to buy batteries",
+   "intent": "create_task",
+   "title": "buy batteries"
+  },
+  {
+   "text": "I have to go to the post office",
+   "intent": "create_task",
+   "title": "post office"
+  },
+  {
+   "text": "need 2 call the insurance guy",
+   "intent": "create_task",
+   "title": "call insurance"
+  },
+  {
+   "text": "i shud fix the bike brakes",
+   "intent": "create_task",
+   "title": "fix bike brakes"
+  },
+  {
+   "text": "add milk to my shopping tasks",
+   "intent": "create_task",
+   "title": "milk"
+  },
+  {
+   "text": "drink water done",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "check the drink water todo im done with that",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "i have drinked water",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "I drank water",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "mark drink water as done",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "done with drink water",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "drink water korechi",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "I called mum",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "finished the quarterly report",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "finally finished the report!!",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "the report is done",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "paid the electricity bill",
+   "intent": "complete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "electricity bill paid",
+   "intent": "complete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "just got back from the gym",
+   "intent": "complete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "went to the gym today",
+   "intent": "complete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "tick off the gym session",
+   "intent": "complete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "complete the mum task",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "spoke to mom already",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "ammu ke call kore felechi",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "bill dewa hoye geche",
+   "intent": "complete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "report er kaj sesh",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "পানি খাওয়া শেষ",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "water ✅",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "dentist done",
+   "intent": "complete_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "i'm done with the dentist",
+   "intent": "complete_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "had my water",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "the mom call is done",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "completed: quarterly report",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "finished gym",
+   "intent": "complete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "electric bill is taken care of",
+   "intent": "complete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "oops I didn't buy milk yet",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "undo the milk task, not done",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "buy milk is not done actually",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "reopen buy milk",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "mark buy milk as not done",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "milk ta ekhono kini nai",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "move the dentist to friday",
+   "intent": "reschedule_task",
+   "ref": "Dentist appointment",
+   "date": 6
+  },
+  {
+   "text": "push the gym session to monday",
+   "intent": "reschedule_task",
+   "ref": "Gym session",
+   "date": 2
+  },
+  {
+   "text": "change the dentist appointment to tomorrow",
+   "intent": "reschedule_task",
+   "ref": "Dentist appointment",
+   "date": 1
+  },
+  {
+   "text": "postpone calling mum to sunday",
+   "intent": "reschedule_task",
+   "ref": "Call mum",
+   "date": 1
+  },
+  {
+   "text": "reschedule the report for wednesday",
+   "intent": "reschedule_task",
+   "ref": "Finish the quarterly report",
+   "date": 4
+  },
+  {
+   "text": "can the gym be at 7pm instead",
+   "intent": "reschedule_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "delay the electricity bill to tomorrow",
+   "intent": "reschedule_task",
+   "ref": "Pay electricity bill",
+   "date": 1
+  },
+  {
+   "text": "gym ta kal er jaygay porshu koro",
+   "intent": "reschedule_task",
+   "ref": "Gym session",
+   "date": 2
+  },
+  {
+   "text": "set the dentist reminder to 9 am",
+   "intent": "reschedule_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "move water to tonight",
+   "intent": "reschedule_task",
+   "ref": "drink water",
+   "date": 0
+  },
+  {
+   "text": "cancel the gym task",
+   "intent": "delete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "delete the dentist appointment",
+   "intent": "delete_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "remove drink water from my list",
+   "intent": "delete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "get rid of the report task",
+   "intent": "delete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "I don't need the mum reminder anymore, delete it",
+   "intent": "delete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "gym er task ta muche dao",
+   "intent": "delete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "forget about the electricity bill task",
+   "intent": "delete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "what todos i have now?",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "todos?",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "my tasks",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "What's overdue?",
+   "intent": "list_tasks",
+   "filter": "overdue"
+  },
+  {
+   "text": "what do I have to do tomorrow?",
+   "intent": "list_tasks",
+   "filter": "tomorrow"
+  },
+  {
+   "text": "what i have to do tomorrow?",
+   "intent": "list_tasks",
+   "filter": "tomorrow"
+  },
+  {
+   "text": "anything due today?",
+   "intent": "list_tasks",
+   "filter": "today"
+  },
+  {
+   "text": "what's on my plate today",
+   "intent": "list_tasks",
+   "filter": "today"
+  },
+  {
+   "text": "show me what I've completed",
+   "intent": "list_tasks",
+   "filter": "done"
+  },
+  {
+   "text": "what tasks have I completed?",
+   "intent": "list_tasks",
+   "filter": "done"
+  },
+  {
+   "text": "what's left to do",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "how many tasks do I have",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "list my reminders",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "what should I do now?",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "amar ki kaj ache?",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "ki ki kaj baki?",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "kal ki ki korte hobe?",
+   "intent": "list_tasks",
+   "filter": "tomorrow"
+  },
+  {
+   "text": "aj ki kaj?",
+   "intent": "list_tasks",
+   "filter": "today"
+  },
+  {
+   "text": "আজকে আমার কি কাজ আছে?",
+   "intent": "list_tasks",
+   "filter": "today"
+  },
+  {
+   "text": "show pending stuff",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "whats my schedule tmrw",
+   "intent": "list_tasks",
+   "filter": "tomorrow"
+  },
+  {
+   "text": "any deadlines this week?",
+   "intent": "list_tasks"
+  },
+  {
+   "text": "what am I forgetting",
+   "intent": "list_tasks"
+  },
+  {
+   "text": "remember my locker code is 4312",
+   "intent": "save_note"
+  },
+  {
+   "text": "note that Sara's birthday is on June 3",
+   "intent": "save_note"
+  },
+  {
+   "text": "save this: wifi password is blue-tiger-88",
+   "intent": "save_note"
+  },
+  {
+   "text": "my car is parked on level 3, spot B12",
+   "intent": "save_note"
+  },
+  {
+   "text": "the plumber's number is 01711-000000",
+   "intent": "save_note"
+  },
+  {
+   "text": "keep in mind that Rafi is allergic to peanuts",
+   "intent": "save_note"
+  },
+  {
+   "text": "idea: an app that tracks plant watering",
+   "intent": "save_note"
+  },
+  {
+   "text": "jot down: the meeting room is 4B",
+   "intent": "save_note"
+  },
+  {
+   "text": "mone rakho amar passport number A1234567",
+   "intent": "save_note"
+  },
+  {
+   "text": "eta mone rekho: bus 7:15 e chare",
+   "intent": "save_note"
+  },
+  {
+   "text": "মনে রাখো আমার রক্তের গ্রুপ বি পজিটিভ",
+   "intent": "save_note"
+  },
+  {
+   "text": "I parked near the blue gate",
+   "intent": "save_note"
+  },
+  {
+   "text": "Book recommendation from Nadia: Deep Work by Cal Newport",
+   "intent": "save_note"
+  },
+  {
+   "text": "store this quote: stay hungry, stay foolish",
+   "intent": "save_note"
+  },
+  {
+   "text": "remember that I lent 500 taka to Arif",
+   "intent": "save_note"
+  },
+  {
+   "text": "What was that React project idea?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "tell me about book i forgot",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "ami ekta boi portesilam eta kobe sesh hobe?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what did I save about RAG?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "summarise everything I saved about machine learning",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what's my locker code?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "where did I park?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what's the wifi password",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "who recommended Deep Work to me?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "when is Sara's birthday",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "how much money did I lend Arif",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what was I reading last month",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "show me my business ideas",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what did I save this week?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "do I have notes on flutter performance",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what was that link about sqlite indexes",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "the receipt from the pharmacy, how much was it?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what did the doctor say in my voice note",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "find my notes about the trip to Sylhet",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "amar passport number koto?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "bus kokhon chare?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "আমার রক্তের গ্রুপ কি?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "Rafi ki khete pare na?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what is that quote I saved",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "any notes from the last meeting?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what do I know about Atomic Habits",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "remind me what the plumber's number was",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what was the name of that restaurant I liked",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "did I save anything about taxes",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "compare my two laptop notes",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what was the plant watering idea",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "I want to know what I saved about RAG",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "good night",
+   "intent": "small_talk"
+  },
+  {
+   "text": "I'm feeling tired today",
+   "intent": "small_talk"
+  },
+  {
+   "text": "you're awesome",
+   "intent": "small_talk"
+  },
+  {
+   "text": "lol",
+   "intent": "small_talk"
+  },
+  {
+   "text": "ok",
+   "intent": "small_talk"
+  },
+  {
+   "text": "how are you?",
+   "intent": "small_talk"
+  },
+  {
+   "text": "kemon acho?",
+   "intent": "small_talk"
+  },
+  {
+   "text": "bhalo lagche na",
+   "intent": "small_talk"
+  },
+  {
+   "text": "I'm done with Atomic Habits",
+   "intent": "small_talk"
+  },
+  {
+   "text": "what a day",
+   "intent": "small_talk"
+  },
+  {
+   "text": "nice",
+   "intent": "small_talk"
+  },
+  {
+   "text": "who won the world cup?",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "what is the capital of France?",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "write me a poem about rain",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "what's the weather in Dhaka",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "translate hello to spanish",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "book me an uber",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "send a message to Rafi",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "how do I cook biryani",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "bangladesh er rajdhani ki?",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "play some music",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "what's 15% of 2400",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "explain quantum computing",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "pls remind me to drink water every 2 hours",
+   "intent": "create_task",
+   "title": "drink water"
+  },
+  {
+   "text": "i need to get a haircut this saturday",
+   "intent": "create_task",
+   "title": "haircut",
+   "date": 7
+  },
+  {
+   "text": "call the electrician monday morning",
+   "intent": "create_task",
+   "title": "call electrician",
+   "date": 2
+  },
+  {
+   "text": "have to return the library books",
+   "intent": "create_task",
+   "title": "return library books"
+  },
+  {
+   "text": "going to meet Tanvir for coffee tomorrow at 4pm",
+   "intent": "create_task",
+   "title": "meet tanvir",
+   "date": 1
+  },
+  {
+   "text": "i must not forget mom's medicine",
+   "intent": "create_task",
+   "title": "medicine"
+  },
+  {
+   "text": "prepare presentation for thursday",
+   "intent": "create_task",
+   "title": "prepare presentation",
+   "date": 5
+  },
+  {
+   "text": "todo: update my CV",
+   "intent": "create_task",
+   "title": "update"
+  },
+  {
+   "text": "reminder: pay rent on the 1st",
+   "intent": "create_task",
+   "title": "pay rent"
+  },
+  {
+   "text": "i should really start reading again",
+   "intent": "create_task",
+   "title": "reading"
+  },
+  {
+   "text": "let's plan a birthday party for Mina next weekend",
+   "intent": "create_task",
+   "title": "birthday party"
+  },
+  {
+   "text": "bhaiya ke taka pathate hobe",
+   "intent": "create_task"
+  },
+  {
+   "text": "aj raate jama kapor dhute hobe",
+   "intent": "create_task",
+   "date": 0
+  },
+  {
+   "text": "ekta reminder dao kal 9 tay meeting",
+   "intent": "create_task",
+   "date": 1
+  },
+  {
+   "text": "মঙ্গলবার ডাক্তারের কাছে যেতে হবে",
+   "intent": "create_task",
+   "date": 3
+  },
+  {
+   "text": "i ned to by grocerys",
+   "intent": "create_task",
+   "title": "grocer"
+  },
+  {
+   "text": "rmind me 2 call dad",
+   "intent": "create_task",
+   "title": "call dad"
+  },
+  {
+   "text": "dont forget the car service",
+   "intent": "create_task",
+   "title": "car service"
+  },
+  {
+   "text": "add: send invoice to client",
+   "intent": "create_task",
+   "title": "send invoice"
+  },
+  {
+   "text": "I finished drinking water",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "water done ✔",
+   "intent": "complete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "talked to mum",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "mum call hoye geche",
+   "intent": "complete_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "report submitted",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "i paid the bill",
+   "intent": "complete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "bill pay korsi",
+   "intent": "complete_task",
+   "ref": "Pay electricity bill"
+  },
+  {
+   "text": "gym kore aslam",
+   "intent": "complete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "dentist theke ashlam",
+   "intent": "complete_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "mark the dentist as complete",
+   "intent": "complete_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "i've done my workout",
+   "intent": "complete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "quarterly report finished finally",
+   "intent": "complete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "i forgot to call mum, put it back",
+   "intent": "reopen_task",
+   "ref": "Call mum"
+  },
+  {
+   "text": "milk is still not bought, reopen it",
+   "intent": "reopen_task",
+   "ref": "Buy milk"
+  },
+  {
+   "text": "make the dentist next tuesday",
+   "intent": "reschedule_task",
+   "ref": "Dentist appointment",
+   "date": 3
+  },
+  {
+   "text": "shift gym to the evening",
+   "intent": "reschedule_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "the report deadline moved to friday",
+   "intent": "reschedule_task",
+   "ref": "Finish the quarterly report",
+   "date": 6
+  },
+  {
+   "text": "remind me about the bill tomorrow instead",
+   "intent": "reschedule_task",
+   "ref": "Pay electricity bill",
+   "date": 1
+  },
+  {
+   "text": "dentist ta sunday te nao",
+   "intent": "reschedule_task",
+   "ref": "Dentist appointment",
+   "date": 1
+  },
+  {
+   "text": "delete the water task",
+   "intent": "delete_task",
+   "ref": "drink water"
+  },
+  {
+   "text": "i won't go to the gym, remove it",
+   "intent": "delete_task",
+   "ref": "Gym session"
+  },
+  {
+   "text": "scrap the quarterly report task",
+   "intent": "delete_task",
+   "ref": "Finish the quarterly report"
+  },
+  {
+   "text": "dentist er reminder ta delete koro",
+   "intent": "delete_task",
+   "ref": "Dentist appointment"
+  },
+  {
+   "text": "whats pending",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "what's due this week?",
+   "intent": "list_tasks"
+  },
+  {
+   "text": "show today's tasks",
+   "intent": "list_tasks",
+   "filter": "today"
+  },
+  {
+   "text": "what did I finish?",
+   "intent": "list_tasks",
+   "filter": "done"
+  },
+  {
+   "text": "any overdue tasks?",
+   "intent": "list_tasks",
+   "filter": "overdue"
+  },
+  {
+   "text": "what's my to do list",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "kon kaj gula baki ache",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "আমার কি কি কাজ বাকি?",
+   "intent": "list_tasks",
+   "filter": "open"
+  },
+  {
+   "text": "tomorrow plans?",
+   "intent": "list_tasks",
+   "filter": "tomorrow"
+  },
+  {
+   "text": "remember the gate code is 7788",
+   "intent": "save_note"
+  },
+  {
+   "text": "save: Nadia's address is House 12, Road 5, Dhanmondi",
+   "intent": "save_note"
+  },
+  {
+   "text": "my blood pressure today was 120/80",
+   "intent": "save_note"
+  },
+  {
+   "text": "the meeting went well, client approved phase 2",
+   "intent": "save_note"
+  },
+  {
+   "text": "Rafi er number 01812-345678",
+   "intent": "save_note"
+  },
+  {
+   "text": "note: buy the blue one, not the black one",
+   "intent": "save_note"
+  },
+  {
+   "text": "i read that coffee after 2pm hurts sleep",
+   "intent": "save_note"
+  },
+  {
+   "text": "what was the gate code?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "Nadia's address?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what did the client approve",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what was my blood pressure",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "Rafi er number ta koto?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "did I write anything about coffee and sleep",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "which color should I buy, I noted it somewhere",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "summarize my notes from this week",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "what ideas did I have about apps",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "ki boi portesilam?",
+   "intent": "ask_memory"
+  },
+  {
+   "text": "thanks bro",
+   "intent": "small_talk"
+  },
+  {
+   "text": "ugh mondays",
+   "intent": "small_talk"
+  },
+  {
+   "text": "you're not helping",
+   "intent": "small_talk"
+  },
+  {
+   "text": "haha",
+   "intent": "small_talk"
+  },
+  {
+   "text": "dhur",
+   "intent": "small_talk"
+  },
+  {
+   "text": "how tall is mount everest",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "set an alarm for 6am",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "what's the news today",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "convert 100 usd to taka",
+   "intent": "out_of_scope"
+  },
+  {
+   "text": "tell me a joke",
+   "intent": "out_of_scope"
+  }
+ ]
+}

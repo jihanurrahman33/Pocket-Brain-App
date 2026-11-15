@@ -6,6 +6,30 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Ask Brain understands any message.** Every message is turned into one
+  of 11 intents with its details (title, day, time, which task, search
+  keywords, note) by the on-device model with schema-constrained JSON
+  output, then carried out by tested code. New: reschedule, delete and
+  reopen tasks; "what's due today/tomorrow"; saving notes from chat;
+  friendly replies to chit-chat and to questions the app cannot answer.
+- **Follow-ups**: "the second one", "it", "make it 6 pm", "no, Friday"
+  refer to what the last answer showed.
+- **Finds the task you mean** by position, by title words, or by meaning
+  (on-device embeddings), and asks which one when unsure.
+- **No dead ends**: when unsure, Ask Brain offers "add as a task" or "save
+  as a note" instead of "I couldn't find that".
+- **"Not what I meant"** on an answer: pick what you meant; the answer is
+  redone and the correction is remembered on the device to improve later
+  answers.
+- **Measured understanding**: a labelled set of 268 real-world messages
+  (English, Bangla, Banglish, typos), a CI gate for the rules fast path and
+  a real-model evaluation (`integration_test/intent_eval_test.dart`).
+- `tool/export_intent_finetune.dart` exports the set as fine-tuning data.
+
+### Fixed
+- "Not done", "undo" and "I forgot to…" were read as completing a task.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added

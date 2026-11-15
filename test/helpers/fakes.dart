@@ -149,9 +149,39 @@ final class FakeAiRuntime implements OnDeviceAiRuntime {
   List<(String, Map<String, Object?>)> toolCalls = [];
   final toolResults = <Map<String, Object?>>[];
 
+  /// What the model "understands" a message as (the intent JSON). The
+  /// default treats every message as a question about memories.
+  String intentReply = intentJson('ask_memory');
+
+  static String intentJson(
+    String intent, {
+    double confidence = 0.9,
+    String title = '',
+    String date = '',
+    String time = '',
+    String taskRef = '',
+    String query = '',
+    String note = '',
+    String filter = '',
+  }) =>
+      '{"intent": "$intent", "confidence": $confidence, "title": "$title", "date": "$date", '
+      '"time": "$time", "task_ref": "$taskRef", "query": "$query", "note": "$note", '
+      '"filter": "$filter"}';
+
+  /// Understanding requests only (not answers).
+  List<GenerationRequest> get intentRequests =>
+      requests.where((r) => r.systemInstruction.contains('what the user wants as JSON')).toList();
+
+  /// Answer, rewrite, analysis… requests (everything but understanding).
+  List<GenerationRequest> get otherRequests =>
+      requests.where((r) => !r.systemInstruction.contains('what the user wants as JSON')).toList();
+
   @override
   Stream<String> generate(GenerationRequest request) {
     requests.add(request);
+    if (request.systemInstruction.contains('what the user wants as JSON')) {
+      return Stream.value(intentReply);
+    }
     if (request.systemInstruction.contains('search keywords')) {
       return Stream.value(rewriteReply);
     }

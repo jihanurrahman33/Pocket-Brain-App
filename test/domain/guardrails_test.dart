@@ -114,8 +114,10 @@ void main() {
     });
 
     // Regression: a Bangla question (in English letters) found nothing.
-    test('a Banglish question finds the English memory via rewriting', () async {
-      ai.reply = ['Apni Atomic Habits porchen [1], kintu kobe sesh hobe ta save koren ni.'];
+    test('a Banglish question finds the English memory via understood keywords', () async {
+      ai
+        ..intentReply = FakeAiRuntime.intentJson('ask_memory', query: 'book reading finish')
+        ..reply = ['Apni Atomic Habits porchen [1], kintu kobe sesh hobe ta save koren ni.'];
       final events = await sl<AskBrain>()(
         const AskRequest(question: 'ami ekta boi portesilam eta kobe sesh hobe?'),
       ).toList();
@@ -124,7 +126,11 @@ void main() {
       final answer = events.whereType<AskAnswerCompleted>().single.message;
       expect(answer.text, contains('Atomic Habits'));
       expect(answer.sourceIds, hasLength(1));
-      expect(ai.requests.first.systemInstruction, contains('search keywords'));
+      // The understanding step's keywords are used; no separate rewrite call.
+      expect(
+        ai.otherRequests.where((r) => r.systemInstruction.contains('search keywords')),
+        isEmpty,
+      );
     });
 
     // Regression: a partial answer that began with "couldn't find" lost its
@@ -209,7 +215,7 @@ void main() {
         await sl<AddTask>()(const NewTask(title: 'drink water'));
         final events = await say('the dentist task is done');
         final answer = events.whereType<AskAnswerCompleted>().single.message;
-        expect(answer.text, startsWith("I couldn't find an open task"));
+        expect(answer.text, startsWith("I couldn't tell which task you mean"));
         expect(events.whereType<AskTasksFound>().single.tasks.single.title, 'drink water');
         final board = (await sl<GetTaskBoard>()(const NoParams())).valueOrNull!;
         expect(board.completed, isEmpty);

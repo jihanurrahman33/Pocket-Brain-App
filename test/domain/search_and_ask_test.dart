@@ -76,7 +76,8 @@ void main() {
       final done = events.whereType<AskAnswerCompleted>().single.message;
       expect(done.text, 'A habit tracker [1].');
       expect(done.sourceIds, ['m1']);
-      expect(ai.requests.single.prompt, contains('React project idea'));
+      expect(ai.otherRequests.single.prompt, contains('React project idea'));
+      expect(ai.intentRequests, hasLength(1), reason: 'understood first');
     });
   });
 }

@@ -1,4 +1,5 @@
 import '../entities/task_item.dart';
+import '../entities/user_intent.dart';
 import 'due_date_parser.dart';
 import 'reminder_time_parser.dart';
 
@@ -63,6 +64,12 @@ abstract final class IntentRouter {
     r'mark(ed)? .* (as )?(done|complete|completed|finished)|'
     r'(check|tick|complete) (the )?.+ (todo|task)|'
     r'korechi|kore felechi|kore fe?lsi|korsi|sesh hoyeche|shesh hoyeche|hoye geche|hoise)\b',
+    caseSensitive: false,
+  );
+
+  /// "not done", "undo", "didn't… yet": the opposite of finishing.
+  static final _negated = RegExp(
+    r"\b(not|never|undo|reopen|un-?tick|uncheck|yet|isn't|wasn't|didn't|haven't|forgot|forget|ekhono|hoyni|kori ?nai|nai)\b",
     caseSensitive: false,
   );
 
@@ -191,6 +198,34 @@ abstract final class IntentRouter {
   /// Minimum share of a task's title words found in the message.
   static const matchThreshold = 0.6;
 
+  /// The fast path: an intent when the rules are sure, otherwise null so
+  /// the model decides. Rules only claim phrasings measured to be reliable
+  /// (see `test/fixtures/intent_eval_set.json`).
+  static UserIntent? understand(String message, List<TaskItem> tasks, {required DateTime now}) {
+    // "buy milk is not done", "undo the milk task": a finished task named
+    // together with a negation reopens it.
+    if (_negated.hasMatch(message) &&
+        !_question.hasMatch(message) &&
+        !_createWords.hasMatch(message) &&
+        matchTasks(message, tasks, done: true).isNotEmpty &&
+        matchTasks(message, tasks).isEmpty) {
+      return UserIntent(IntentType.reopenTask, taskRef: message.trim());
+    }
+    return _fromClassification(message, tasks, now);
+  }
+
+  static UserIntent? _fromClassification(String message, List<TaskItem> tasks, DateTime now) =>
+      switch (classify(message, tasks)) {
+        CompleteTaskIntent() => UserIntent(IntentType.completeTask, taskRef: message.trim()),
+        QueryTasksIntent(:final filter) => UserIntent(IntentType.listTasks, filter: filter),
+        PlanTaskIntent(:final title) => UserIntent(
+          IntentType.createTask,
+          title: title,
+          date: DueDateParser.parse(message, now: now),
+        ),
+        MemoryQuestionIntent() => null,
+      };
+
   static AskIntent classify(String message, List<TaskItem> openTasks) {
     final text = message.trim();
     final isQuestion = _question.hasMatch(text);
@@ -203,6 +238,7 @@ abstract final class IntentRouter {
         (_pastStatement.hasMatch(text) && (matches.isNotEmpty || finished.isNotEmpty));
     final completes =
         saysDone &&
+        !_negated.hasMatch(text) &&
         !isQuestion &&
         !_createWords.hasMatch(text) &&
         !_intention.hasMatch(text) &&
@@ -231,7 +267,13 @@ abstract final class IntentRouter {
   static String? planTitle(String text) {
     final what = _plan.firstMatch(text)?[1];
     if (what == null || _notAPlan.hasMatch(what.trim())) return null;
-    final title = what
+    return titleFrom(what);
+  }
+
+  /// [text] as a short task title: day and time words removed, first
+  /// letter capitalised ("gym at 7 tomorrow" → "Gym"). Null when empty.
+  static String? titleFrom(String text) {
+    final title = text
         .replaceAll(DueDateParser.phrase, ' ')
         .replaceAll(ReminderTimeParser.phrases, ' ')
         .replaceAll(RegExp(r'\b(please|pls)\b', caseSensitive: false), ' ')
@@ -250,6 +292,9 @@ abstract final class IntentRouter {
     if (RegExp(r'\b(what|which|how many)\b.*\b(done|completed|finished)\b').hasMatch(q)) {
       return 'done';
     }
+    final day = DueDateParser.parse(q, now: DateTime(2000));
+    if (day == DateTime(2000)) return 'today';
+    if (day == DateTime(2000, 1, 2)) return 'tomorrow';
     return 'open';
   }
 
@@ -275,6 +320,19 @@ abstract final class IntentRouter {
         if (score == best) task,
     ];
   }
+
+  /// Every content word of a short [reference] ("dentist", "the gym
+  /// one") appears in the task title. Best title coverage first.
+  static List<TaskItem> tasksContaining(String reference, List<TaskItem> tasks) {
+    final ref = _words(reference).where((w) => !_referenceFiller.contains(w)).toList();
+    if (ref.isEmpty) return const [];
+    return [
+      for (final task in tasks)
+        if (ref.every((w) => _words(task.title).any((t) => _sameStem(t, w)))) task,
+    ];
+  }
+
+  static const _referenceFiller = {'one', 'thing', 'stuff', 'item', 'appointment'};
 
   static List<String> _words(String text) => [
     for (final w in RegExp(r"[a-z0-9']+").allMatches(text.toLowerCase()).map((m) => m[0]!))

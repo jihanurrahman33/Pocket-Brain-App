@@ -9,7 +9,9 @@ import '../../../domain/entities/conversation.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/memory_collection.dart';
 import '../../../domain/entities/task_item.dart';
+import '../../../domain/entities/user_intent.dart';
 import '../../../domain/usecases/ask/ask_usecases.dart';
+import '../../../domain/usecases/ask/understand_message.dart';
 import '../../../domain/usecases/collections/collection_usecases.dart';
 import '../../../domain/usecases/tasks/task_usecases.dart';
 
@@ -29,7 +31,9 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     required ConfirmAssistantAction confirmAction,
     required DismissAssistantAction dismissAction,
     required ToggleTaskDone toggleTask,
+    required RecordIntentCorrection recordCorrection,
   }) : _askBrain = askBrain,
+       _recordCorrection = recordCorrection,
        _toggleTask = toggleTask,
        _confirmAction = confirmAction,
        _dismissAction = dismissAction,
@@ -55,6 +59,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
   final ConfirmAssistantAction _confirmAction;
   final DismissAssistantAction _dismissAction;
   final ToggleTaskDone _toggleTask;
+  final RecordIntentCorrection _recordCorrection;
   bool _stopRequested = false;
 
   Future<void> _dispatch(AskEvent event, Emitter<AskState> emit) => switch (event) {
@@ -64,6 +69,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
     AskConversationDeleted(:final conversationId) => _onConversationDeleted(conversationId, emit),
     AskQuestionSubmitted(:final question) => _onQuestionSubmitted(question, emit),
     AskRegenerateRequested() => _onRegenerate(emit),
+    AskIntentCorrected(:final intent) => _onIntentCorrected(intent, emit),
     AskTaskToggled(:final task) => _onTaskToggled(task, emit),
     AskActionDecided(:final messageId, :final actionId, :final confirmed) => _onActionDecided(
       messageId,
@@ -151,7 +157,14 @@ class AskBloc extends Bloc<AskEvent, AskState> {
 
   /// Answers the last question again, replacing (not duplicating) the
   /// stored answer.
-  Future<void> _onRegenerate(Emitter<AskState> emit) async {
+  Future<void> _onIntentCorrected(IntentType intent, Emitter<AskState> emit) async {
+    final question = state.messages.where((m) => m.isUser).lastOrNull;
+    if (question == null) return;
+    await _recordCorrection(IntentExample(question.text, intent));
+    await _onRegenerate(emit, forcedIntent: intent);
+  }
+
+  Future<void> _onRegenerate(Emitter<AskState> emit, {IntentType? forcedIntent}) async {
     final conversation = state.conversation;
     final messages = state.messages;
     final questionIndex = messages.lastIndexWhere((m) => m.isUser);
@@ -165,6 +178,7 @@ class AskBloc extends Bloc<AskEvent, AskState> {
         staleAnswerId: staleAnswer?.id,
         history: messages.sublist(0, questionIndex),
         isStopRequested: () => _stopRequested,
+        forcedIntent: forcedIntent,
       ),
       emit,
     );

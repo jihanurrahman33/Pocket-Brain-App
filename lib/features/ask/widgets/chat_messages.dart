@@ -10,6 +10,7 @@ import '../../../core/widgets/section_header.dart';
 import '../../../domain/entities/conversation.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/task_item.dart';
+import '../../../domain/entities/user_intent.dart';
 import '../../model_manager/widgets/model_setup_banner.dart';
 import '../../shared/widgets/memory_views.dart';
 import '../bloc/ask_bloc.dart';
@@ -190,11 +191,39 @@ class _AnswerBlock extends StatelessWidget {
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed: () => context.read<AskBloc>().add(const AskRegenerateRequested()),
                 ),
+              if (canRegenerate)
+                IconButton(
+                  tooltip: 'Not what I meant',
+                  iconSize: _actionIconSize,
+                  icon: const Icon(Icons.alt_route_rounded),
+                  onPressed: () => _correct(context),
+                ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  /// Lets the user say what the message meant; the answer is redone and
+  /// the choice is remembered on the device.
+  Future<void> _correct(BuildContext context) async {
+    final bloc = context.read<AskBloc>();
+    final choice = await showModalBottomSheet<IntentType>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(title: Text('What did you mean?')),
+            for (final t in IntentType.correctable)
+              ListTile(title: Text(t.label), onTap: () => Navigator.pop(context, t)),
+          ],
+        ),
+      ),
+    );
+    if (choice != null) bloc.add(AskIntentCorrected(choice));
   }
 }
 

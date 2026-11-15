@@ -5,6 +5,7 @@ import '../services/language_detector.dart';
 import 'conversation.dart';
 import 'memory.dart';
 import 'task_item.dart';
+import 'user_intent.dart';
 
 /// Fixed replies, so the app never invents memories.
 abstract final class AskReplies {
@@ -25,6 +26,7 @@ class AskRequest extends Equatable {
     this.history = const [],
     this.isStopRequested = _never,
   }) : staleAnswerId = null,
+       forcedIntent = null,
        isRegeneration = false;
 
   /// Answers the latest question of [conversation] again. The question is
@@ -36,6 +38,7 @@ class AskRequest extends Equatable {
     required this.staleAnswerId,
     this.history = const [],
     this.isStopRequested = _never,
+    this.forcedIntent,
   }) : collectionId = null,
        isRegeneration = true;
 
@@ -61,6 +64,9 @@ class AskRequest extends Equatable {
   /// The previous answer to replace when regenerating.
   final String? staleAnswerId;
 
+  /// What the user said the question meant ("Not what I meant").
+  final IntentType? forcedIntent;
+
   @override
   List<Object?> get props => [
     question,
@@ -69,6 +75,7 @@ class AskRequest extends Equatable {
     history,
     isRegeneration,
     staleAnswerId,
+    forcedIntent,
   ];
 }
 

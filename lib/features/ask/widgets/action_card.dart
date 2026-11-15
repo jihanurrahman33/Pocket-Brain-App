@@ -72,6 +72,22 @@ class AssistantActionCard extends StatelessWidget {
         'Save as a memory',
         [args['text'] ?? ''],
       ),
+      AssistantActionType.rescheduleTask => (
+        Icons.event_repeat_rounded,
+        'Change task',
+        [
+          args['title'] ?? '',
+          if (DateTime.tryParse(args['due'] ?? '') case final due?)
+            'New date ${Formatters.day(due)}',
+          if (DateTime.tryParse(args['reminder'] ?? '') case final at?)
+            'Reminder ${Formatters.reminder(at)}',
+        ],
+      ),
+      AssistantActionType.deleteTask => (
+        Icons.delete_outline_rounded,
+        'Delete task',
+        [args['title'] ?? ''],
+      ),
     };
   }
 }
