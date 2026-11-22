@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:record/record.dart' as rec;
 
 import '../../../core/utils/id_generator.dart';
-import '../../../domain/services/ai_services.dart';
+import '../../../domain/services/ai/ai_services.dart';
 
 /// Records 16 kHz mono WAV — what the on-device model listens to best.
 const _sampleRate = 16000;

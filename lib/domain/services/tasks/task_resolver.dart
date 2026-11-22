@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
-import '../../core/utils/text_utils.dart';
-import '../entities/task_item.dart';
-import 'ai_services.dart';
-import 'intent_router.dart';
+import '../../../core/utils/text_utils.dart';
+import '../../entities/task_item.dart';
+import '../ai/ai_services.dart';
+import '../ai/intent_router.dart';
 
 /// Finds the task(s) a message refers to (Resolve step): by position in the
 /// last answer ("the second one", "it"), by title words ("drink water" ~

@@ -4,9 +4,9 @@ import '../../../core/utils/clock.dart';
 import '../../entities/task_item.dart';
 import '../../entities/user_intent.dart';
 import '../../repositories/intent_correction_repository.dart';
-import '../../services/ai_services.dart';
-import '../../services/due_date_parser.dart';
-import '../../services/intent_router.dart';
+import '../../services/ai/ai_services.dart';
+import '../../services/dates/due_date_parser.dart';
+import '../../services/ai/intent_router.dart';
 
 typedef UnderstandRequest = ({
   String message,

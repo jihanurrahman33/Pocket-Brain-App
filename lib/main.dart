@@ -19,10 +19,10 @@ import 'core/utils/id_generator.dart';
 import 'data/datasources/ai/litert_ai_runtime.dart';
 import 'data/datasources/ai/resumable_downloader.dart';
 import 'data/datasources/local/app_database.dart';
-import 'data/repositories/prefs_preferences_repository.dart';
+import 'data/repositories/prefs/prefs_preferences_repository.dart';
 import 'data/services/audio/voice_recorders.dart';
 import 'data/services/notifications/local_notification_scheduler.dart';
-import 'domain/services/ai_services.dart';
+import 'domain/services/ai/ai_services.dart';
 import 'domain/usecases/indexing/indexing_usecases.dart';
 import 'domain/usecases/tasks/task_usecases.dart';
 

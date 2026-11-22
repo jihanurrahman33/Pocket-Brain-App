@@ -1,7 +1,7 @@
-import '../entities/task_item.dart';
-import '../entities/user_intent.dart';
-import 'due_date_parser.dart';
-import 'reminder_time_parser.dart';
+import '../../entities/task_item.dart';
+import '../../entities/user_intent.dart';
+import '../dates/due_date_parser.dart';
+import '../dates/reminder_time_parser.dart';
 
 /// What the user wants from an Ask Brain message, decided deterministically
 /// before any retrieval or model call. A small model is unreliable at this

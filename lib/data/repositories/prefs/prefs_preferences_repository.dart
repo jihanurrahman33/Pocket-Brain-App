@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../domain/entities/ai_model.dart';
-import '../../domain/repositories/preferences_repository.dart';
+import '../../../domain/entities/ai_model.dart';
+import '../../../domain/repositories/preferences_repository.dart';
 
 final class SharedPrefsPreferencesRepository implements PreferencesRepository {
   SharedPrefsPreferencesRepository(this._prefs);

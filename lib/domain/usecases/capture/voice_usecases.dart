@@ -3,7 +3,7 @@ import '../../../core/error/guard.dart';
 import '../../../core/error/result.dart';
 import '../../../core/logging/app_logger.dart';
 import '../../../core/usecase/usecase.dart';
-import '../../services/ai_services.dart';
+import '../../services/ai/ai_services.dart';
 
 final class StartVoiceRecording implements UseCase<Result<void>, NoParams> {
   const StartVoiceRecording(this._recorder, this._logger);

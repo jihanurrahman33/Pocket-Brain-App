@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../domain/entities/user_intent.dart';
-import '../../domain/repositories/intent_correction_repository.dart';
+import '../../../domain/entities/user_intent.dart';
+import '../../../domain/repositories/intent_correction_repository.dart';
 
 /// Keeps the latest corrections in preferences (small, on device only).
 final class PrefsIntentCorrectionRepository implements IntentCorrectionRepository {

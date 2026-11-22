@@ -9,8 +9,8 @@ import '../../entities/search.dart';
 import '../../repositories/collection_repository.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
-import '../../services/ai_services.dart';
-import '../../services/topic_ranker.dart';
+import '../../services/ai/ai_services.dart';
+import '../../services/ranking/topic_ranker.dart';
 
 /// Smart-recall rules shared by Home and the Digest.
 final class RecallPolicy {

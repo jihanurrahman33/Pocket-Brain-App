@@ -5,12 +5,12 @@ import '../../entities/assistant.dart';
 import '../../entities/task_item.dart';
 import '../../entities/user_intent.dart';
 import '../../repositories/task_repository.dart';
-import '../../services/assistant_toolbox.dart';
-import '../../services/intent_router.dart';
-import '../../services/language_detector.dart';
-import '../../services/reminder_time_parser.dart';
-import '../../services/task_resolver.dart';
-import '../../services/task_summary.dart';
+import '../../services/ai/assistant_toolbox.dart';
+import '../../services/ai/intent_router.dart';
+import '../../services/ai/language_detector.dart';
+import '../../services/dates/reminder_time_parser.dart';
+import '../../services/tasks/task_resolver.dart';
+import '../../services/tasks/task_summary.dart';
 
 /// One understood message, ready to be carried out.
 typedef IntentRequest = ({

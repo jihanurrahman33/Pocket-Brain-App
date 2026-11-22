@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../services/language_detector.dart';
+import '../services/ai/language_detector.dart';
 
 import 'conversation.dart';
 import 'memory.dart';

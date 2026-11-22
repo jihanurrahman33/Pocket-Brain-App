@@ -3,7 +3,7 @@ import 'dart:io';
 
 import '../../../core/utils/text_utils.dart';
 import '../../../domain/entities/capture.dart';
-import '../../../domain/services/ai_services.dart';
+import '../../../domain/services/ai/ai_services.dart';
 import '../../datasources/ai/on_device_ai_runtime.dart';
 import 'prompts/prompts.dart';
 

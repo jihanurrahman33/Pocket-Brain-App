@@ -71,7 +71,7 @@ Helpers in `test/helpers/`:
 Run one file or test:
 
 ```bash
-flutter test test/features/blocs_test.dart
+flutter test test/features/capture_ask_blocs_test.dart
 flutter test --plain-name "regenerate"
 ```
 

@@ -1,11 +1,11 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../domain/entities/task_item.dart';
-import '../../domain/repositories/task_repository.dart';
-import '../datasources/local/app_database.dart';
-import '../datasources/local/database_schema.dart';
-import '../mappers/row_mappers.dart';
-import 'change_broadcaster.dart';
+import '../../../domain/entities/task_item.dart';
+import '../../../domain/repositories/task_repository.dart';
+import '../../datasources/local/app_database.dart';
+import '../../datasources/local/database_schema.dart';
+import '../../mappers/row_mappers.dart';
+import '../change_broadcaster.dart';
 
 final class SqliteTaskRepository with ChangeBroadcaster implements TaskRepository {
   SqliteTaskRepository(this._database);

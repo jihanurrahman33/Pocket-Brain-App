@@ -2,7 +2,7 @@ import '../../../core/logging/app_logger.dart';
 import '../../../core/utils/text_utils.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../domain/entities/memory_analysis.dart';
-import '../../../domain/services/ai_services.dart';
+import '../../../domain/services/ai/ai_services.dart';
 import '../../datasources/ai/on_device_ai_runtime.dart';
 import 'date_expression_parser.dart';
 import 'parsers/analysis_response_parser.dart';

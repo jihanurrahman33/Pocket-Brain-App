@@ -4,9 +4,9 @@ import '../../../core/logging/app_logger.dart';
 import '../../../core/utils/text_utils.dart';
 import '../../../domain/entities/ask.dart';
 import '../../../domain/entities/memory.dart';
-import '../../../domain/services/ai_services.dart';
-import '../../../domain/services/assistant_toolbox.dart';
-import '../../../domain/services/topic_ranker.dart';
+import '../../../domain/services/ai/ai_services.dart';
+import '../../../domain/services/ai/assistant_toolbox.dart';
+import '../../../domain/services/ranking/topic_ranker.dart';
 import '../../datasources/ai/on_device_ai_runtime.dart';
 import 'prompts/prompts.dart';
 

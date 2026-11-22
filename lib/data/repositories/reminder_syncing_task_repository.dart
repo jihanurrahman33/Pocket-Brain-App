@@ -1,6 +1,6 @@
 import '../../domain/entities/task_item.dart';
 import '../../domain/repositories/task_repository.dart';
-import '../../domain/services/reminder_scheduler.dart';
+import '../../domain/services/dates/reminder_scheduler.dart';
 
 /// Keeps notifications in step with tasks (Decorator): every save, delete
 /// and wipe goes through here, so no use case has to remember to schedule

@@ -1,6 +1,6 @@
-import '../../core/utils/clock.dart';
-import '../entities/task_item.dart';
-import 'language_detector.dart';
+import '../../../core/utils/clock.dart';
+import '../../entities/task_item.dart';
+import '../ai/language_detector.dart';
 
 /// A one-sentence summary of a task list, computed from the data so it is
 /// always correct (a small model miscounted even two tasks).

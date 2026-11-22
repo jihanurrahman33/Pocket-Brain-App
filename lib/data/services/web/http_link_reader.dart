@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/logging/app_logger.dart';
 import '../../../core/utils/text_utils.dart';
-import '../../../domain/services/ai_services.dart';
+import '../../../domain/services/ai/ai_services.dart';
 
 /// Best-effort fetch of a saved link. Only the URL the user saved is
 /// requested; failures simply mean the note is saved without page text.

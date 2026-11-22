@@ -95,7 +95,7 @@ Use **Settings → Free memory** to unload models when not needed.
 ## Where the AI code lives
 
 ```
-domain/services/ai_services.dart        ports: MemoryAnalyzer, AnswerGenerator,
+domain/services/ai/ai_services.dart        ports: MemoryAnalyzer, AnswerGenerator,
                                         RecapWriter, TextEmbedder, LinkReader
 data/datasources/ai/on_device_ai_runtime.dart   OnDeviceAiRuntime port
 data/datasources/ai/litert_ai_runtime.dart      LiteRT-LM adapter (only file
@@ -140,7 +140,7 @@ use keeps the smaller memory footprint (important on 4 GB phones).
 
 ## Tool calling (Ask Brain actions)
 
-`AssistantToolbox` (`domain/services/assistant_toolbox.dart`) exposes three
+`AssistantToolbox` (`domain/services/ai/assistant_toolbox.dart`) exposes three
 tools through the engine's function-calling loop:
 
 | Tool | Effect |
@@ -156,7 +156,7 @@ the wrong tool, which is why every data change needs confirmation.
 
 ## Guardrails
 
-`AssistantGuardrails` (`domain/services/assistant_guardrails.dart`) wraps every
+`AssistantGuardrails` (`domain/services/ai/assistant_guardrails.dart`) wraps every
 Ask Brain answer with deterministic rules that hold whatever the model writes:
 
 | Stage | Guardrail |

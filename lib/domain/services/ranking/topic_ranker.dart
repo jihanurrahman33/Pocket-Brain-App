@@ -1,5 +1,5 @@
-import '../entities/memory.dart';
-import '../entities/recall.dart';
+import '../../entities/memory.dart';
+import '../../entities/recall.dart';
 
 /// Ranks tags by how often they appear in a set of memories.
 abstract final class TopicRanker {

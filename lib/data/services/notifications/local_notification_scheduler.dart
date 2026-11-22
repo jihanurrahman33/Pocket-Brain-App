@@ -10,7 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../../core/logging/app_logger.dart';
 import '../../../core/utils/clock.dart';
 import '../../../domain/entities/task_item.dart';
-import '../../../domain/services/reminder_scheduler.dart';
+import '../../../domain/services/dates/reminder_scheduler.dart';
 
 /// Reminders as local notifications via `flutter_local_notifications`.
 ///

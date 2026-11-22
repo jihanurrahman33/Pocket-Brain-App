@@ -1,7 +1,7 @@
 import '../../../core/logging/app_logger.dart';
 import '../../../domain/entities/user_intent.dart';
 import '../../../domain/repositories/task_repository.dart';
-import '../../../domain/services/ai_services.dart';
+import '../../../domain/services/ai/ai_services.dart';
 import '../../datasources/ai/on_device_ai_runtime.dart';
 import 'parsers/intent_response_parser.dart';
 import 'prompts/intent_prompt.dart';

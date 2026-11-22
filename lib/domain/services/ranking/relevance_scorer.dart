@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import '../../core/utils/text_utils.dart';
-import '../entities/memory.dart';
+import '../../../core/utils/text_utils.dart';
+import '../../entities/memory.dart';
 
 /// Scores how relevant a memory is to a query, in [0, 1] (Strategy pattern).
 ///

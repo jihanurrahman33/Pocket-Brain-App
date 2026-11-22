@@ -1,5 +1,5 @@
-import '../entities/task_item.dart';
-import '../repositories/change_notifier.dart';
+import '../../entities/task_item.dart';
+import '../../repositories/change_notifier.dart';
 
 /// Delivers task reminders as local notifications.
 ///

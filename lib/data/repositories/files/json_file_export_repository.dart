@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../../domain/repositories/data_export_repository.dart';
-import '../mappers/export_mapper.dart';
+import '../../../domain/repositories/data_export_repository.dart';
+import '../../mappers/export_mapper.dart';
 
 /// Writes exports as pretty JSON into Downloads (or Documents as fallback).
 final class JsonFileExportRepository implements DataExportRepository {

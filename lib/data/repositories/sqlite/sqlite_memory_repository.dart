@@ -3,13 +3,13 @@ import 'dart:typed_data';
 import 'package:sqflite_common/utils/utils.dart' as sql_utils;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../domain/entities/memory.dart';
-import '../../domain/entities/search.dart';
-import '../../domain/repositories/memory_repository.dart';
-import '../datasources/local/app_database.dart';
-import '../datasources/local/database_schema.dart';
-import '../mappers/row_mappers.dart';
-import 'change_broadcaster.dart';
+import '../../../domain/entities/memory.dart';
+import '../../../domain/entities/search.dart';
+import '../../../domain/repositories/memory_repository.dart';
+import '../../datasources/local/app_database.dart';
+import '../../datasources/local/database_schema.dart';
+import '../../mappers/row_mappers.dart';
+import '../change_broadcaster.dart';
 
 final class SqliteMemoryRepository
     with ChangeBroadcaster

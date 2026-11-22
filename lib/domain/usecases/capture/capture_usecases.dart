@@ -15,7 +15,7 @@ import '../../repositories/attachment_store.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/preferences_repository.dart';
 import '../../repositories/task_repository.dart';
-import '../../services/ai_services.dart';
+import '../../services/ai/ai_services.dart';
 import '../indexing/indexing_usecases.dart';
 import '../search/search_usecases.dart';
 

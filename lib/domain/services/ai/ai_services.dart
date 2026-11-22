@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
-import '../entities/ask.dart';
-import '../entities/capture.dart';
-import '../entities/memory.dart';
-import '../entities/memory_analysis.dart';
-import '../entities/user_intent.dart';
+import '../../entities/ask.dart';
+import '../../entities/capture.dart';
+import '../../entities/memory.dart';
+import '../../entities/memory_analysis.dart';
+import '../../entities/user_intent.dart';
 import 'assistant_toolbox.dart';
 
 /// Ports for AI capabilities (Interface Segregation: each consumer depends

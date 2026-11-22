@@ -9,8 +9,8 @@ import '../../entities/memory.dart';
 import '../../entities/search.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/search_history_repository.dart';
-import '../../services/ai_services.dart';
-import '../../services/relevance_scorer.dart';
+import '../../services/ai/ai_services.dart';
+import '../../services/ranking/relevance_scorer.dart';
 
 /// Finds memories by words or by meaning.
 ///

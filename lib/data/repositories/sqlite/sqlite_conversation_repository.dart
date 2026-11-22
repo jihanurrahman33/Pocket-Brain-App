@@ -1,11 +1,11 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../domain/entities/conversation.dart';
-import '../../domain/repositories/conversation_repository.dart';
-import '../../domain/repositories/search_history_repository.dart';
-import '../datasources/local/app_database.dart';
-import '../datasources/local/database_schema.dart';
-import '../mappers/row_mappers.dart';
+import '../../../domain/entities/conversation.dart';
+import '../../../domain/repositories/conversation_repository.dart';
+import '../../../domain/repositories/search_history_repository.dart';
+import '../../datasources/local/app_database.dart';
+import '../../datasources/local/database_schema.dart';
+import '../../mappers/row_mappers.dart';
 
 final class SqliteConversationRepository implements ConversationRepository {
   SqliteConversationRepository(this._database);

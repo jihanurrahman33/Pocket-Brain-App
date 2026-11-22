@@ -4,7 +4,7 @@ import '../../../core/logging/app_logger.dart';
 import '../../../core/usecase/usecase.dart';
 import '../../entities/memory.dart';
 import '../../repositories/memory_repository.dart';
-import '../../services/ai_services.dart';
+import '../../services/ai/ai_services.dart';
 
 /// Computes and stores the semantic vector of one memory.
 ///

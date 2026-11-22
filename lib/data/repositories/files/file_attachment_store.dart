@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../../core/utils/id_generator.dart';
-import '../../domain/entities/memory.dart';
-import '../../domain/repositories/attachment_store.dart';
+import '../../../core/utils/id_generator.dart';
+import '../../../domain/entities/memory.dart';
+import '../../../domain/repositories/attachment_store.dart';
 
 /// Keeps attachments as files in a private app folder, named by id so
 /// user-chosen file names never leak into storage paths.

@@ -9,7 +9,7 @@ import '../../entities/recall.dart';
 import '../../entities/task_item.dart';
 import '../../repositories/memory_repository.dart';
 import '../../repositories/task_repository.dart';
-import '../../services/reminder_scheduler.dart';
+import '../../services/dates/reminder_scheduler.dart';
 
 /// Groups tasks into overdue / upcoming / anytime / completed and attaches
 /// the memories they came from.
